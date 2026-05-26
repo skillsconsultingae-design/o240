@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import {
   findProduit,
   BOISSONS_SUPP_ASSIETTE,
+  PAINS_SANDWICHS,
   type Produit,
   type ProduitSimple,
   type ProduitFormule,
@@ -24,6 +25,7 @@ export interface CartItem {
   categorie: string;
   formule?: 'seul' | 'menu';
   boisson_menu?: string;
+  pain?: string;
   viandes?: ViandeSelection[];
   boissons_supp?: string[];
   toppings_gourmandises?: string[];
@@ -54,6 +56,10 @@ export function calculateItemPrice(item: Omit<CartItem, 'prix_unitaire' | 'quant
   } else if (produit.type === 'formule') {
     const p = produit as ProduitFormule;
     total = item.formule === 'menu' ? p.prix_menu : p.prix_seul;
+    if (item.pain) {
+      const painOption = PAINS_SANDWICHS.find((pa) => pa.id === item.pain);
+      if (painOption) total += painOption.supplement;
+    }
   } else if (produit.type === 'crepe_sucree') {
     const p = produit as ProduitCrepe;
     total = p.prix_base;
@@ -93,6 +99,9 @@ function getPrixMinimum(produit: Produit): number {
 
 function buildCartKey(item: Omit<CartItem, 'prix_unitaire' | 'quantite' | 'cartKey'>): string {
   const parts = [item.id, item.formule || 'default'];
+  if (item.pain) {
+    parts.push('p:' + item.pain);
+  }
   if (item.viandes?.length) {
     parts.push('v:' + item.viandes.map((v) => `${v.id}x${v.quantite}`).sort().join(','));
   }

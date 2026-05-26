@@ -2,16 +2,16 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Baby, UtensilsCrossed, Sandwich, ChefHat, Flame, Beef, Pizza,
-  Star, Drumstick, List, Users, Salad, CircleDot, Cookie, Cake, GlassWater,
+  Baby, UtensilsCrossed, Sandwich, Flame, Beef, Pizza,
+  Star, Drumstick, Salad, CircleDot, Cake, GlassWater,
 } from 'lucide-react';
 import { CATALOGUE } from '../data/catalogue';
 import ProductCard from '../components/ProductCard';
 import SEO from '../components/SEO';
 
 const iconMap: Record<string, React.ElementType> = {
-  Baby, UtensilsCrossed, Sandwich, ChefHat, Flame, Beef, Pizza,
-  Star, Drumstick, List, Users, Salad, CircleDot, Cookie, Cake, GlassWater,
+  Baby, UtensilsCrossed, Sandwich, Flame, Beef, Pizza,
+  Star, Drumstick, Salad, CircleDot, Cake, GlassWater,
 };
 
 export default function Menu() {
@@ -37,7 +37,7 @@ export default function Menu() {
     <main className="pt-24 pb-20 min-h-screen">
       <SEO
         title="Menu O'240 - Burgers, Buckets, Menus Enfants a Saint-Michel-sur-Orge"
-        description="Decouvrez la carte complete d'O'240 : burgers au charbon, buckets tenders et wings, crepes, menus enfants, sandwichs et bien plus. Livraison a Saint-Michel-sur-Orge."
+        description="Decouvrez la carte complete d'O'240 : burgers artisanaux, specialite Cheese Naan, tex mex, crepes, menus enfants, sandwichs et bien plus. Livraison a Saint-Michel-sur-Orge."
         canonical="https://o240.fr/menu"
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

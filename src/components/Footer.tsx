@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail, Clock, Instagram, Facebook } from 'lucide-react';
-import { Logo } from './Logo';
 
 export default function Footer() {
   return (
@@ -14,11 +13,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           <div>
             <Link to="/" className="inline-block mb-6" aria-label="O'240 - Accueil">
-              <Logo />
+              <img src="/logo240.png" alt="O'240" className="h-20 w-auto object-contain" />
             </Link>
             <p className="text-white/40 text-sm leading-relaxed mb-6">
               Le meilleur burger a Saint-Michel-sur-Orge,
-              cuit au charbon de bois. Livraison a domicile et a emporter, 7j/7.
+              specialite Cheese Naan. Livraison a domicile et a emporter, 7j/7.
             </p>
             <div className="flex gap-3">
               <a

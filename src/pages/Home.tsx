@@ -9,26 +9,33 @@ import CategoryGrid from '../components/CategoryGrid';
 import { CATALOGUE, type ProduitFormule, type ProduitSimple } from '../data/catalogue';
 
 const burgersCat = CATALOGUE.find((c) => c.id === 'burgers')!;
-const burgers = burgersCat.produits.map((p) => {
-  const f = p as ProduitFormule;
-  return { name: f.nom, solo: f.prix_seul, menu: f.prix_menu };
-});
+const burgers = burgersCat.produits
+  .filter((p) => p.type === 'formule' && !p.id.startsWith('croque'))
+  .slice(0, 4)
+  .map((p) => {
+    const f = p as ProduitFormule;
+    return { name: f.nom, solo: f.prix_seul, menu: f.prix_menu };
+  });
 
-const bucketsCat = CATALOGUE.find((c) => c.id === 'buckets')!;
-const buckets = bucketsCat.produits.map((p) => {
-  const s = p as ProduitSimple;
-  return { name: s.nom, price: s.prix, desc: '' };
-});
+const texMexCat = CATALOGUE.find((c) => c.id === 'tex_mex')!;
+const buckets = texMexCat.produits
+  .filter((p) => p.id.startsWith('bucket_'))
+  .map((p) => {
+    const s = p as ProduitSimple;
+    return { name: s.nom.replace('BUCKET ', ''), price: s.prix, desc: '' };
+  });
 
 const crepesData = [
   {
     type: 'Salees',
+    link: '/menu?category=crepes_salees',
     items: CATALOGUE.find((c) => c.id === 'crepes_salees')!.produits.map(
       (p) => `${p.nom} ${(p as ProduitSimple).prix.toFixed(2)}€`
     ),
   },
   {
     type: 'Sucrees',
+    link: '/menu?category=desserts',
     items: ['Composez votre crepe 3.50€'],
   },
 ];
@@ -36,7 +43,7 @@ const crepesData = [
 const faq = [
   { q: 'Quels sont les horaires d\'O\'240 ?', a: 'Nous sommes ouverts 7j/7. Du lundi au jeudi et samedi : 11h-15h et 18h-22h45. Le vendredi et dimanche : 18h-22h45 uniquement.' },
   { q: 'Livrez-vous a Saint-Michel-sur-Orge ?', a: 'Oui ! Nous livrons a Saint-Michel-sur-Orge et dans les communes voisines. Minimum de commande 10€ pour Saint-Michel-sur-Orge.' },
-  { q: 'Vos burgers sont-ils cuits au charbon ?', a: 'Absolument. Tous nos burgers sont cuits au charbon de bois pour une saveur authentique et un gout inimitable.' },
+  { q: 'Quelle est votre specialite ?', a: 'Notre specialite est le Cheese Naan, un pain signature maison qui offre une experience unique. Disponible en option sur tous nos sandwichs.' },
   { q: 'Proposez-vous des menus enfants ?', a: 'Oui, nous avons des menus enfants a 5.50€ comprenant un burger (Cheese ou Tex Mex) avec frites et boisson.' },
   { q: 'Comment fonctionne le programme de fidelite ?', a: 'Avec Note Me, cumulez 1 point par euro depense. Echangez vos points contre des reductions allant de 5% a 15%.' },
 ];
@@ -45,7 +52,7 @@ const blogPreviews = [
   {
     slug: 'burger-saint-michel-sur-orge',
     title: 'Pourquoi O\'240 est LE burger incontournable a Saint-Michel-sur-Orge',
-    excerpt: 'Decouvrez O\'240, le restaurant burger artisanal de Saint-Michel-sur-Orge. Cuisson au charbon, ingredients frais, livraison 7j/7.',
+    excerpt: 'Decouvrez O\'240, le restaurant burger artisanal de Saint-Michel-sur-Orge. Specialite Cheese Naan, ingredients frais, livraison 7j/7.',
   },
   {
     slug: 'menu-enfant-burger-saint-michel-sur-orge',
@@ -70,7 +77,7 @@ export default function Home() {
     <main>
       <SEO
         title="Burger Saint-Michel-sur-Orge | O'240 - Livraison & A Emporter"
-        description="O'240, le burger artisanal a Saint-Michel-sur-Orge. Commandez en livraison ou a emporter : burgers au charbon, buckets, menus enfants. Ouvert 7j/7."
+        description="O'240, le burger artisanal a Saint-Michel-sur-Orge. Commandez en livraison ou a emporter : burgers artisanaux, specialite Cheese Naan, buckets, menus enfants. Ouvert 7j/7."
         canonical="https://o240.fr/"
       />
 
@@ -79,7 +86,7 @@ export default function Home() {
         "@type": ["Restaurant", "LocalBusiness", "FoodEstablishment"],
         "@id": "https://o240.fr/#restaurant",
         "name": "O'240",
-        "description": "Restaurant burger artisanal à Saint-Michel-sur-Orge. Burgers cuits au charbon, buckets, menus enfants, crêpes. Livraison et à emporter 7j/7.",
+        "description": "Restaurant burger artisanal à Saint-Michel-sur-Orge. Burgers artisanaux, buckets, menus enfants, crêpes. Livraison et à emporter 7j/7.",
         "url": "https://o240.fr",
         "telephone": "+33177052710",
         "email": "contact@o240.fr",
@@ -87,8 +94,8 @@ export default function Home() {
         "paymentAccepted": "Cash, Credit Card",
         "priceRange": "€€",
         "servesCuisine": ["Burgers", "Fast Food", "Poulet", "Crêpes"],
-        "hasMenu": "https://o240.fr/burgers_maison",
-        "menu": "https://o240.fr/burgers_maison",
+        "hasMenu": "https://o240.fr/menu",
+        "menu": "https://o240.fr/menu",
         "acceptsReservations": "False",
         "address": {
           "@type": "PostalAddress",
@@ -112,7 +119,7 @@ export default function Home() {
           "@type": "OrderAction",
           "target": {
             "@type": "EntryPoint",
-            "urlTemplate": "https://o240.fr/burgers_maison",
+            "urlTemplate": "https://o240.fr/menu",
             "inLanguage": "fr",
             "actionPlatform": ["https://schema.org/DesktopWebPlatform", "https://schema.org/MobileWebPlatform"]
           },
@@ -156,12 +163,12 @@ export default function Home() {
           },
           {
             "@type": "MenuSection", "@id": "https://o240.fr/#menu-section-burgers",
-            "name": "Burgers", "description": "Burgers artisanaux cuits au charbon de bois",
+            "name": "Burgers", "description": "Burgers artisanaux artisanaux de bois",
             "hasMenuItem": [
               {
                 "@type": "MenuItem", "@id": "https://o240.fr/#menuitem-burger-cheese", "name": "Cheese Burger",
-                "description": "Burger au cheddar fondant, cuit au charbon. Disponible seul ou en menu avec frites et boisson.",
-                "url": "https://o240.fr/burgers_maison",
+                "description": "Burger au cheddar fondant, artisanal. Disponible seul ou en menu avec frites et boisson.",
+                "url": "https://o240.fr/menu",
                 "offers": [
                   { "@type": "Offer", "name": "Seul", "price": "5.50", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" },
                   { "@type": "Offer", "name": "Menu (avec frites + boisson)", "price": "6.50", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" }
@@ -169,8 +176,8 @@ export default function Home() {
               },
               {
                 "@type": "MenuItem", "@id": "https://o240.fr/#menuitem-burger-chicken", "name": "Chicken Burger",
-                "description": "Burger au poulet croustillant, cuit au charbon.",
-                "url": "https://o240.fr/burgers_maison",
+                "description": "Burger au poulet croustillant, artisanal.",
+                "url": "https://o240.fr/menu",
                 "offers": [
                   { "@type": "Offer", "name": "Seul", "price": "6.50", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" },
                   { "@type": "Offer", "name": "Menu", "price": "7.50", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" }
@@ -178,8 +185,8 @@ export default function Home() {
               },
               {
                 "@type": "MenuItem", "@id": "https://o240.fr/#menuitem-burger-180gr", "name": "Burger 180GR",
-                "description": "Burger généreux 180 grammes de viande cuite au charbon.",
-                "url": "https://o240.fr/burgers_maison",
+                "description": "Burger généreux 180 grammes de viande artisanale.",
+                "url": "https://o240.fr/menu",
                 "offers": [
                   { "@type": "Offer", "name": "Seul", "price": "8.50", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" },
                   { "@type": "Offer", "name": "Menu", "price": "9.50", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" }
@@ -187,8 +194,8 @@ export default function Home() {
               },
               {
                 "@type": "MenuItem", "@id": "https://o240.fr/#menuitem-burger-tower", "name": "Tower Burger",
-                "description": "Burger imposant multicouches, cuit au charbon.",
-                "url": "https://o240.fr/burgers_maison",
+                "description": "Burger imposant multicouches, artisanal.",
+                "url": "https://o240.fr/menu",
                 "offers": [
                   { "@type": "Offer", "name": "Seul", "price": "7.50", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" },
                   { "@type": "Offer", "name": "Menu", "price": "8.50", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" }
@@ -203,19 +210,19 @@ export default function Home() {
               {
                 "@type": "MenuItem", "@id": "https://o240.fr/#menuitem-bucket-tenders", "name": "Bucket Tenders",
                 "description": "Bucket de tenders de poulet croustillants à partager.",
-                "url": "https://o240.fr/buckets--saint-michel-sur-orge",
+                "url": "https://o240.fr/menu?category=tex_mex",
                 "offers": { "@type": "Offer", "price": "21.90", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" }
               },
               {
                 "@type": "MenuItem", "@id": "https://o240.fr/#menuitem-bucket-wings", "name": "Bucket Wings",
                 "description": "Bucket d'ailes de poulet marinées et dorées à partager.",
-                "url": "https://o240.fr/buckets--saint-michel-sur-orge",
+                "url": "https://o240.fr/menu?category=tex_mex",
                 "offers": { "@type": "Offer", "price": "22.90", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" }
               },
               {
                 "@type": "MenuItem", "@id": "https://o240.fr/#menuitem-bucket-mix", "name": "Bucket Mix",
                 "description": "Assortiment de tenders et wings de poulet à partager.",
-                "url": "https://o240.fr/buckets--saint-michel-sur-orge",
+                "url": "https://o240.fr/menu?category=tex_mex",
                 "offers": { "@type": "Offer", "price": "25.90", "priceCurrency": "EUR", "availability": "https://schema.org/InStock" }
               }
             ]
@@ -262,7 +269,7 @@ export default function Home() {
               Le Meilleur Burger a Saint-Michel-sur-Orge
             </h1>
             <p className="text-white/60 text-lg sm:text-xl max-w-lg mb-8 leading-relaxed">
-              Burgers artisanaux cuits au charbon, buckets genereux, crepes gourmandes.
+              Burgers artisanaux, specialite Cheese Naan, buckets genereux, crepes gourmandes.
               Livraison a domicile ou a emporter, 7 jours sur 7.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -305,8 +312,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: Flame, title: 'Cuisson au charbon', desc: 'Tous nos burgers sont grilles au charbon de bois pour un gout unique' },
-              { icon: Truck, title: 'Livraison rapide', desc: 'Livraison en 40 min dans toutes nos zones de livraison' },
+              { icon: Flame, title: 'Specialite Cheese Naan', desc: 'Notre pain signature maison, une experience unique' },
+              { icon: Truck, title: 'Livraison rapide', desc: 'Livraison en 30 min dans toutes nos zones de livraison' },
               { icon: Clock, title: 'Ouvert 7j/7', desc: '11h-15h / 18h-22h45. Ven & Dim : 18h-22h45' },
               { icon: Star, title: 'Programme fidelite', desc: 'Cumulez des points et beneficiez de reductions exclusives' },
             ].map((f, i) => (
@@ -330,9 +337,9 @@ export default function Home() {
       <section className="py-20 bg-dark-950" id="burgers">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div {...fadeUp} className="text-center mb-12">
-            <span className="text-brand-400 font-medium text-sm uppercase tracking-widest">Cuisson au charbon</span>
+            <span className="text-brand-400 font-medium text-sm uppercase tracking-widest">Specialite Cheese Naan</span>
             <h2 className="font-display text-4xl sm:text-5xl font-bold text-white uppercase mt-2">Nos Burgers</h2>
-            <p className="text-white/40 mt-3 max-w-lg mx-auto">Grilles au charbon de bois pour une saveur incomparable</p>
+            <p className="text-white/40 mt-3 max-w-lg mx-auto">Des burgers artisanaux pour une saveur incomparable</p>
           </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {burgers.map((b, i) => (
@@ -441,7 +448,7 @@ export default function Home() {
             ))}
           </div>
           <div className="text-center mt-8">
-            <Link to="/menu?category=buckets" className="inline-flex items-center gap-2 text-brand-400 hover:text-brand-300 transition-colors font-medium">
+            <Link to="/menu?category=tex_mex" className="inline-flex items-center gap-2 text-brand-400 hover:text-brand-300 transition-colors font-medium">
               Voir tous les buckets <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -470,7 +477,7 @@ export default function Home() {
                   ))}
                 </ul>
                 <Link
-                  to={`/menu?category=crepes-${cat.type.toLowerCase()}`}
+                  to={cat.link}
                   className="inline-flex items-center gap-1 text-sm text-brand-400 hover:text-brand-300 transition-colors mt-6"
                 >
                   Voir les crepes {cat.type.toLowerCase()} <ChevronRight className="w-4 h-4" />

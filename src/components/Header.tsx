@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, Menu, X, MapPin, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '../store/cart';
-import { Logo } from './Logo';
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -57,28 +56,11 @@ export default function Header() {
           </nav>
 
           <Link to="/" className="flex items-center" aria-label="O'240 - Accueil">
-            <span className="hidden sm:block"><Logo /></span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="140" height="43" viewBox="0 0 210 64" aria-label="O'240" className="block sm:hidden">
-              <defs>
-                <linearGradient id="logoGradM" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#FFB347"/>
-                  <stop offset="100%" stopColor="#E87722"/>
-                </linearGradient>
-                <filter id="logoGlowM" x="-60%" y="-60%" width="220%" height="220%">
-                  <feGaussianBlur stdDeviation="1.5" result="b"/>
-                  <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                </filter>
-              </defs>
-              <circle cx="28" cy="34" r="24" fill="none" stroke="#FFFFFF" strokeWidth="8"/>
-              <circle cx="43" cy="17" r="13" fill="#141414"/>
-              <circle cx="50" cy="8" r="3" fill="url(#logoGradM)" filter="url(#logoGlowM)"/>
-              <circle cx="55" cy="15" r="1.8" fill="#FFB347"/>
-              <circle cx="48" cy="4" r="2" fill="url(#logoGradM)" filter="url(#logoGlowM)"/>
-              <path d="M 54 20 C 53 15 59 14 58 19 C 58 22 55 24 54 20 Z" fill="url(#logoGradM)"/>
-              <text x="62" y="55" fontFamily="Oswald, Impact, sans-serif" fontWeight="700" fontSize="50" fill="#FFFFFF" letterSpacing="-2">240</text>
-              <path d="M 61 59 Q 130 70 202 55" stroke="url(#logoGradM)" strokeWidth="2.2" fill="none" strokeLinecap="round" filter="url(#logoGlowM)"/>
-              <path d="M 195 52 L 204 56 L 194 60 Z" fill="#E87722"/>
-            </svg>
+            <img
+              src="/logo240.png"
+              alt="O'240"
+              className="h-14 sm:h-20 w-auto object-contain"
+            />
           </Link>
 
           <div className="flex items-center gap-4">

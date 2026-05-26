@@ -11,6 +11,7 @@ import {
   BOISSONS_SUPP_ASSIETTE,
   BOISSONS_MENU,
   SAUCES_OFFERTES,
+  PAINS_SANDWICHS,
 } from '../data/catalogue';
 import { useCartStore } from '../store/cart';
 
@@ -19,7 +20,7 @@ interface Props {
   onClose: () => void;
 }
 
-const CATEGORIES_AVEC_SAUCES = ['burgers', 'burgers_maison', 'paninis', 'croque_mr', 'sodips', 'sandwichs'];
+const CATEGORIES_AVEC_SAUCES = ['burgers', 'paninis', 'sodips', 'sandwichs', 'tex_mex'];
 
 export default function ConfigurateurModal({ produit, onClose }: Props) {
   const content = (() => {
@@ -242,10 +243,17 @@ function ConfigFormule({ produit, onClose }: { produit: ProduitFormule; onClose:
   const addItem = useCartStore((s) => s.addItem);
   const [formule, setFormule] = useState<'seul' | 'menu'>('seul');
   const [boissonMenu, setBoissonMenu] = useState<string | null>(null);
+  const [pain, setPain] = useState<string | null>(
+    produit.categorie === 'sandwichs' ? 'pain_classique' : null
+  );
   const [sauces, setSauces] = useState<Set<string>>(new Set());
 
-  const totalPrice = formule === 'menu' ? produit.prix_menu : produit.prix_seul;
-  const canConfirm = formule === 'seul' || boissonMenu !== null;
+  const isSandwich = produit.categorie === 'sandwichs';
+  const painSupp = isSandwich && pain
+    ? (PAINS_SANDWICHS.find((p) => p.id === pain)?.supplement || 0)
+    : 0;
+  const totalPrice = (formule === 'menu' ? produit.prix_menu : produit.prix_seul) + painSupp;
+  const canConfirm = (formule === 'seul' || boissonMenu !== null) && (!isSandwich || pain !== null);
 
   function toggleSauce(id: string) {
     setSauces((prev) => {
@@ -262,6 +270,7 @@ function ConfigFormule({ produit, onClose }: { produit: ProduitFormule; onClose:
       nom: produit.nom,
       categorie: produit.categorie,
       formule,
+      pain: isSandwich ? pain || undefined : undefined,
       boisson_menu: formule === 'menu' ? boissonMenu || undefined : undefined,
       sauces: sauces.size > 0 ? [...sauces] : undefined,
     });
@@ -273,6 +282,51 @@ function ConfigFormule({ produit, onClose }: { produit: ProduitFormule; onClose:
       <ModalHeader title={produit.nom} onClose={onClose} />
 
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
+        {/* Bread choice for sandwichs */}
+        {isSandwich && (
+          <div>
+            <h4 className="font-semibold text-white text-sm uppercase mb-1">Choix du pain</h4>
+            <p className="text-xs text-white/30 mb-3">Obligatoire</p>
+            <div className="space-y-2">
+              {PAINS_SANDWICHS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setPain(p.id)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
+                    pain === p.id
+                      ? 'border-brand-500 bg-brand-500/10'
+                      : 'border-white/5 bg-dark-800 hover:border-white/10'
+                  }`}
+                >
+                  <span className="text-sm text-white">{p.nom}</span>
+                  <div className="flex items-center gap-2">
+                    {p.supplement > 0 && (
+                      <span className="text-xs text-brand-400">+{p.supplement.toFixed(2)}€</span>
+                    )}
+                    {p.supplement === 0 && (
+                      <span className="text-xs text-success-400">Inclus</span>
+                    )}
+                    {pain === p.id && (
+                      <div className="w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Garniture info for sandwichs */}
+        {isSandwich && (
+          <div>
+            <h4 className="font-semibold text-white text-sm uppercase mb-1">Garniture incluse</h4>
+            <p className="text-xs text-white/30 mb-3">Salade, Tomate, Oignon</p>
+          </div>
+        )}
+
+        {/* Formule choice */}
         <div>
           <h4 className="font-semibold text-white text-sm uppercase mb-3">Formule</h4>
           <div className="grid grid-cols-2 gap-3">
@@ -285,7 +339,7 @@ function ConfigFormule({ produit, onClose }: { produit: ProduitFormule; onClose:
               }`}
             >
               <span className="font-display text-2xl font-bold text-white block">
-                {produit.prix_seul.toFixed(2)}€
+                {(produit.prix_seul + painSupp).toFixed(2)}€
               </span>
               <span className="text-xs text-white/40 mt-1 block uppercase">Seul</span>
               <span className="text-[10px] text-white/25 mt-0.5 block">Sans frites ni boisson</span>
@@ -299,7 +353,7 @@ function ConfigFormule({ produit, onClose }: { produit: ProduitFormule; onClose:
               }`}
             >
               <span className="font-display text-2xl font-bold text-white block">
-                {produit.prix_menu.toFixed(2)}€
+                {(produit.prix_menu + painSupp).toFixed(2)}€
               </span>
               <span className="text-xs text-white/40 mt-1 block uppercase">En Menu</span>
               <span className="text-[10px] text-white/25 mt-0.5 block">Avec frites + boisson</span>
@@ -307,6 +361,7 @@ function ConfigFormule({ produit, onClose }: { produit: ProduitFormule; onClose:
           </div>
         </div>
 
+        {/* Drink choice when menu selected */}
         <AnimatePresence>
           {formule === 'menu' && (
             <motion.div
@@ -316,7 +371,7 @@ function ConfigFormule({ produit, onClose }: { produit: ProduitFormule; onClose:
               className="overflow-hidden"
             >
               <div>
-                <h4 className="font-semibold text-white text-sm uppercase mb-1">Votre boisson</h4>
+                <h4 className="font-semibold text-white text-sm uppercase mb-1">Choix de la boisson</h4>
                 <p className="text-xs text-white/30 mb-3">Incluse dans votre menu</p>
                 <div className="space-y-2">
                   {BOISSONS_MENU.map((b) => (
@@ -355,7 +410,11 @@ function ConfigFormule({ produit, onClose }: { produit: ProduitFormule; onClose:
         totalPrice={totalPrice}
         canConfirm={canConfirm}
         onConfirm={handleConfirm}
-        warningMessage="Choisissez votre boisson pour valider le menu"
+        warningMessage={
+          isSandwich && !pain
+            ? "Choisissez votre pain pour continuer"
+            : "Choisissez votre boisson pour valider le menu"
+        }
       />
     </>
   );

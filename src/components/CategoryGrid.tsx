@@ -1,31 +1,26 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Baby, UtensilsCrossed, Sandwich, ChefHat, Flame, Beef, Pizza,
-  Star, Drumstick, List, Users, Salad, CircleDot, Cookie, Cake, GlassWater,
+  Baby, UtensilsCrossed, Sandwich, Flame, Beef, Pizza,
+  Star, Drumstick, Salad, CircleDot, Cake, GlassWater,
 } from 'lucide-react';
 import { CATALOGUE } from '../data/catalogue';
 
 const iconMap: Record<string, React.ElementType> = {
-  Baby, UtensilsCrossed, Sandwich, ChefHat, Flame, Beef, Pizza,
-  Star, Drumstick, List, Users, Salad, CircleDot, Cookie, Cake, GlassWater,
+  Baby, UtensilsCrossed, Sandwich, Flame, Beef, Pizza,
+  Star, Drumstick, Salad, CircleDot, Cake, GlassWater,
 };
 
 const categoryImages: Record<string, string> = {
-  'menus_enfant': 'https://images.unsplash.com/photo-1551782450-17144efb9c50?w=600&q=80',
-  'assiettes': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80',
+  'burgers': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
   'sandwichs': 'https://images.unsplash.com/photo-1553909489-cd47e0907980?w=600&q=80',
-  'croque_mr': 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&q=80',
-  'burgers_maison': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
-  'burgers': 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&q=80',
-  'paninis': 'https://images.unsplash.com/photo-1619096252214-ef06c45683e3?w=600&q=80',
-  'sodips': 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&q=80',
   'tex_mex': 'https://images.unsplash.com/photo-1562967914-608f82629710?w=600&q=80',
-  'a_la_carte': 'https://images.unsplash.com/photo-1630384060421-cb20d0e0649d?w=600&q=80',
-  'buckets': '/image.png',
+  'menus_enfant': 'https://images.unsplash.com/photo-1551782450-17144efb9c50?w=600&q=80',
+  'paninis': 'https://images.unsplash.com/photo-1619096252214-ef06c45683e3?w=600&q=80',
+  'assiettes': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80',
+  'sodips': 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&q=80',
   'salades': 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&q=80',
   'crepes_salees': '/crepes-salees.webp',
-  'crepes_sucrees': 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=600&q=80',
   'desserts': 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=600&q=80',
   'boissons': 'https://images.unsplash.com/photo-1581006852262-e4307cf6283a?w=600&q=80',
 };

@@ -89,9 +89,9 @@ export const BOISSONS_SUPP_ASSIETTE: Topping[] = [
 
 // ── Boissons incluses dans les menus (prix 0, juste le choix) ──
 export const BOISSONS_MENU: string[] = [
-  'Coca-Cola', 'Coca-Cola Zero', 'Schweppes Agrum',
-  'Orangina', 'Fanta Orange', 'Fanta Citron',
-  'Sprite', 'Ice Tea', 'Oasis', 'Perrier', 'Cristaline',
+  'Coca Cola 33cl', 'Coca Cola Zero 33cl', 'Schweppes Agrum 33cl',
+  'Orangina 33cl', 'Fanta Orange 33cl', 'Fanta Citron 33cl',
+  'Sprite 33cl', 'Ice Tea 33cl', 'Oasis 33cl', 'Perrier 33cl', 'Cristaline 33cl',
 ];
 
 // ── Sauces offertes ──
@@ -123,24 +123,37 @@ const FRUITS: Topping[] = [
   { id: 'noix_coco', nom: 'Noix de Coco', prix: 1.50 },
 ];
 
+// ── Options de pain pour sandwichs ──
+export interface PainOption {
+  id: string;
+  nom: string;
+  supplement: number;
+}
+
+export const PAINS_SANDWICHS: PainOption[] = [
+  { id: 'pain_classique', nom: 'Pain classique', supplement: 0 },
+  { id: 'tortilla', nom: 'Tortilla', supplement: 0 },
+  { id: 'cheese_naan_pain', nom: 'Cheese Naan', supplement: 0.50 },
+];
+
 // ── Catalogue complet ──
 export const CATALOGUE: CategorieMenu[] = [
   {
-    id: 'menus_enfant',
-    nom: 'Menus Enfant',
-    icone: 'Baby',
+    id: 'burgers',
+    nom: 'Burgers',
+    soustitre: 'Burgers classiques, maison & croques',
+    icone: 'Beef',
     produits: [
-      { id: 'enfant_cheese', nom: 'CHEESE', prix: 5.50, description: 'Cheese burger + frites + Capri-Sun', categorie: 'menus_enfant', type: 'simple' },
-      { id: 'enfant_texmex', nom: 'TEX MEX', prix: 5.50, description: 'Tenders + frites + Capri-Sun', categorie: 'menus_enfant', type: 'simple' },
-    ],
-  },
-  {
-    id: 'assiettes',
-    nom: 'Assiettes',
-    icone: 'UtensilsCrossed',
-    produits: [
-      { id: 'assiette_1', nom: '1 VIANDE', prix_base: 8.90, nb_viandes_max: 1, supp_boisson: 1.00, categorie: 'assiettes', type: 'assiette' },
-      { id: 'assiette_2', nom: '2 VIANDES', prix_base: 9.90, nb_viandes_max: 2, supp_boisson: 1.00, categorie: 'assiettes', type: 'assiette' },
+      { id: 'burger_cheese', nom: 'CHEESE', prix_seul: 5.50, prix_menu: 6.50, categorie: 'burgers', type: 'formule' },
+      { id: 'burger_chicken', nom: 'CHICKEN', prix_seul: 6.50, prix_menu: 7.50, categorie: 'burgers', type: 'formule' },
+      { id: 'burger_tower', nom: 'TOWER', prix_seul: 7.50, prix_menu: 8.50, categorie: 'burgers', type: 'formule' },
+      { id: 'burger_180gr', nom: '180GR', prix_seul: 8.50, prix_menu: 9.50, categorie: 'burgers', type: 'formule' },
+      { id: 'gourmet', nom: 'LE GOURMET', prix: 12.50, categorie: 'burgers', type: 'simple' },
+      { id: 'french', nom: 'LE FRENCH', prix: 12.50, categorie: 'burgers', type: 'simple' },
+      { id: 'montagnard', nom: 'LE MONTAGNARD', prix: 12.50, categorie: 'burgers', type: 'simple' },
+      { id: 'chevre_miel', nom: 'CHEVRE MIEL', prix: 12.50, categorie: 'burgers', type: 'simple' },
+      { id: 'croque_simple', nom: 'CROQUE MR', prix_seul: 5.50, prix_menu: 6.50, categorie: 'burgers', type: 'formule' },
+      { id: 'croque_special', nom: 'CROQUE SPECIAL', prix_seul: 6.50, prix_menu: 7.50, categorie: 'burgers', type: 'formule' },
     ],
   },
   {
@@ -168,37 +181,39 @@ export const CATALOGUE: CategorieMenu[] = [
     ],
   },
   {
-    id: 'croque_mr',
-    nom: 'Croque Mr',
-    soustitre: 'Menu avec frites & boisson',
-    icone: 'ChefHat',
+    id: 'tex_mex',
+    nom: 'Tex Mex',
+    soustitre: 'Tenders, wings, buckets & a la carte',
+    icone: 'Drumstick',
     produits: [
-      { id: 'croque_simple', nom: 'CROQUE MR', prix_seul: 5.50, prix_menu: 6.50, categorie: 'croque_mr', type: 'formule' },
-      { id: 'croque_special', nom: 'CROQUE SPECIAL', prix_seul: 6.50, prix_menu: 7.50, categorie: 'croque_mr', type: 'formule' },
+      { id: 'texmex_tenders', nom: '6 TENDERS', prix_seul: 8.50, prix_menu: 9.50, categorie: 'tex_mex', type: 'formule' },
+      { id: 'texmex_wings', nom: '9 CHICKEN WINGS', prix_seul: 8.50, prix_menu: 9.50, categorie: 'tex_mex', type: 'formule' },
+      { id: 'texmex_nuggets', nom: '9 NUGGETS', prix_seul: 8.50, prix_menu: 9.50, categorie: 'tex_mex', type: 'formule' },
+      { id: 'bucket_tenders', nom: 'BUCKET TENDERS', prix: 21.90, categorie: 'tex_mex', type: 'simple' },
+      { id: 'bucket_wings', nom: 'BUCKET WINGS', prix: 22.90, categorie: 'tex_mex', type: 'simple' },
+      { id: 'bucket_mix', nom: 'BUCKET MIX', prix: 25.90, categorie: 'tex_mex', type: 'simple' },
+      { id: 'mozza_4', nom: '4 MOZZA STICKS', prix: 3.50, categorie: 'tex_mex', type: 'simple' },
+      { id: 'mozza_6', nom: '6 MOZZA STICKS', prix: 4.50, categorie: 'tex_mex', type: 'simple' },
+      { id: 'camembert_4', nom: '4 BOUCHEES DE CAMEMBERT', prix: 3.50, categorie: 'tex_mex', type: 'simple' },
+      { id: 'camembert_6', nom: '6 BOUCHEES DE CAMEMBERT', prix: 4.50, categorie: 'tex_mex', type: 'simple' },
+      { id: 'jalapenos_4', nom: '4 JALAPENOS', prix: 3.50, categorie: 'tex_mex', type: 'simple' },
+      { id: 'jalapenos_6', nom: '6 JALAPENOS', prix: 4.50, categorie: 'tex_mex', type: 'simple' },
+      { id: 'nuggets_4', nom: '4 NUGGETS', prix: 3.50, categorie: 'tex_mex', type: 'simple' },
+      { id: 'nuggets_6', nom: '6 NUGGETS', prix: 5.00, categorie: 'tex_mex', type: 'simple' },
+      { id: 'frites_petite', nom: 'PETITE FRITES', prix: 2.50, categorie: 'tex_mex', type: 'simple' },
+      { id: 'frites_grande', nom: 'GRANDE FRITES', prix: 3.00, categorie: 'tex_mex', type: 'simple' },
+      { id: 'frites_cheddar_petite', nom: 'PETITE FRITES CHEDDAR BACON', prix: 3.50, categorie: 'tex_mex', type: 'simple' },
+      { id: 'frites_cheddar_grande', nom: 'GRANDE FRITES CHEDDAR BACON', prix: 5.00, categorie: 'tex_mex', type: 'simple' },
+      { id: 'cheese_naan', nom: 'CHEESE NAAN', prix: 3.00, categorie: 'tex_mex', type: 'simple' },
     ],
   },
   {
-    id: 'burgers_maison',
-    nom: 'Burgers Maison',
-    soustitre: 'Signatures de la maison',
-    icone: 'Flame',
+    id: 'menus_enfant',
+    nom: 'Menus Enfant',
+    icone: 'Baby',
     produits: [
-      { id: 'gourmet', nom: 'LE GOURMET', prix: 12.50, categorie: 'burgers_maison', type: 'simple' },
-      { id: 'french', nom: 'LE FRENCH', prix: 12.50, categorie: 'burgers_maison', type: 'simple' },
-      { id: 'montagnard', nom: 'LE MONTAGNARD', prix: 12.50, categorie: 'burgers_maison', type: 'simple' },
-      { id: 'chevre_miel', nom: 'CHEVRE MIEL', prix: 12.50, categorie: 'burgers_maison', type: 'simple' },
-    ],
-  },
-  {
-    id: 'burgers',
-    nom: 'Burgers',
-    soustitre: 'Cuisson au charbon',
-    icone: 'Beef',
-    produits: [
-      { id: 'burger_cheese', nom: 'CHEESE', prix_seul: 5.50, prix_menu: 6.50, categorie: 'burgers', type: 'formule' },
-      { id: 'burger_chicken', nom: 'CHICKEN', prix_seul: 6.50, prix_menu: 7.50, categorie: 'burgers', type: 'formule' },
-      { id: 'burger_tower', nom: 'TOWER', prix_seul: 7.50, prix_menu: 8.50, categorie: 'burgers', type: 'formule' },
-      { id: 'burger_180gr', nom: '180GR', prix_seul: 8.50, prix_menu: 9.50, categorie: 'burgers', type: 'formule' },
+      { id: 'enfant_cheese', nom: 'CHEESE', prix: 5.50, description: 'Cheese burger + frites + Capri-Sun', categorie: 'menus_enfant', type: 'simple' },
+      { id: 'enfant_texmex', nom: 'TEX MEX', prix: 5.50, description: 'Tenders + frites + Capri-Sun', categorie: 'menus_enfant', type: 'simple' },
     ],
   },
   {
@@ -217,6 +232,15 @@ export const CATALOGUE: CategorieMenu[] = [
     ],
   },
   {
+    id: 'assiettes',
+    nom: 'Assiettes',
+    icone: 'UtensilsCrossed',
+    produits: [
+      { id: 'assiette_1', nom: '1 VIANDE', prix_base: 8.90, nb_viandes_max: 1, supp_boisson: 1.00, categorie: 'assiettes', type: 'assiette' },
+      { id: 'assiette_2', nom: '2 VIANDES', prix_base: 9.90, nb_viandes_max: 2, supp_boisson: 1.00, categorie: 'assiettes', type: 'assiette' },
+    ],
+  },
+  {
     id: 'sodips',
     nom: "Sodip's",
     icone: 'Star',
@@ -224,48 +248,6 @@ export const CATALOGUE: CategorieMenu[] = [
       { id: 'sodip_compose', nom: "COMPOSEZ VOTRE SODIP'S", prix: 5.50, categorie: 'sodips', type: 'simple' },
       { id: 'sodip_steak', nom: 'STEAK', prix: 9.00, categorie: 'sodips', type: 'simple' },
       { id: 'sodip_crousty', nom: 'CROUSTY', prix: 10.00, categorie: 'sodips', type: 'simple' },
-    ],
-  },
-  {
-    id: 'tex_mex',
-    nom: 'Tex Mex',
-    soustitre: 'Menu avec frites & boisson',
-    icone: 'Drumstick',
-    produits: [
-      { id: 'texmex_tenders', nom: '6 TENDERS', prix_seul: 8.50, prix_menu: 9.50, categorie: 'tex_mex', type: 'formule' },
-      { id: 'texmex_wings', nom: '9 CHICKEN WINGS', prix_seul: 8.50, prix_menu: 9.50, categorie: 'tex_mex', type: 'formule' },
-      { id: 'texmex_nuggets', nom: '9 NUGGETS', prix_seul: 8.50, prix_menu: 9.50, categorie: 'tex_mex', type: 'formule' },
-    ],
-  },
-  {
-    id: 'a_la_carte',
-    nom: 'A la Carte',
-    icone: 'List',
-    produits: [
-      { id: 'mozza_4', nom: '4 MOZZA STICKS', prix: 3.50, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'mozza_6', nom: '6 MOZZA STICKS', prix: 4.50, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'camembert_4', nom: '4 BOUCHEES DE CAMEMBERT', prix: 3.50, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'camembert_6', nom: '6 BOUCHEES DE CAMEMBERT', prix: 4.50, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'jalapenos_4', nom: '4 JALAPENOS', prix: 3.50, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'jalapenos_6', nom: '6 JALAPENOS', prix: 4.50, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'nuggets_4', nom: '4 NUGGETS', prix: 3.50, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'nuggets_6', nom: '6 NUGGETS', prix: 5.00, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'frites_petite', nom: 'PETITE FRITES', prix: 2.50, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'frites_grande', nom: 'GRANDE FRITES', prix: 3.00, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'frites_cheddar_petite', nom: 'PETITE FRITES CHEDDAR BACON', prix: 3.50, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'frites_cheddar_grande', nom: 'GRANDE FRITES CHEDDAR BACON', prix: 5.00, categorie: 'a_la_carte', type: 'simple' },
-      { id: 'cheese_naan', nom: 'CHEESE NAAN', prix: 3.00, categorie: 'a_la_carte', type: 'simple' },
-    ],
-  },
-  {
-    id: 'buckets',
-    nom: 'Buckets',
-    soustitre: 'Format familial/groupe',
-    icone: 'Users',
-    produits: [
-      { id: 'bucket_tenders', nom: 'TENDERS', prix: 21.90, categorie: 'buckets', type: 'simple' },
-      { id: 'bucket_wings', nom: 'WINGS', prix: 22.90, categorie: 'buckets', type: 'simple' },
-      { id: 'bucket_mix', nom: 'MIX', prix: 25.90, categorie: 'buckets', type: 'simple' },
     ],
   },
   {
@@ -292,26 +274,19 @@ export const CATALOGUE: CategorieMenu[] = [
     ],
   },
   {
-    id: 'crepes_sucrees',
-    nom: 'Crepes Sucrees',
-    icone: 'Cookie',
-    produits: [
-      {
-        id: 'crepe_sucree',
-        nom: 'COMPOSEZ VOTRE CREPE',
-        prix_base: 3.50,
-        categorie: 'crepes_sucrees',
-        type: 'crepe_sucree',
-        toppings_gourmandises: GOURMANDISES,
-        toppings_fruits: FRUITS,
-      },
-    ],
-  },
-  {
     id: 'desserts',
     nom: 'Desserts',
     icone: 'Cake',
     produits: [
+      {
+        id: 'crepe_sucree',
+        nom: 'CREPE SUCREE (Composez)',
+        prix_base: 3.50,
+        categorie: 'desserts',
+        type: 'crepe_sucree',
+        toppings_gourmandises: GOURMANDISES,
+        toppings_fruits: FRUITS,
+      },
       { id: 'tarte_daims', nom: 'TARTE AUX DAIMS', prix: 2.50, note: 'La tarte decongelee ne doit pas etre recongelee', categorie: 'desserts', type: 'simple' },
       { id: 'tiramisu', nom: 'TIRAMISU', prix: 3.00, categorie: 'desserts', type: 'simple' },
     ],
@@ -368,8 +343,9 @@ export function getPrixAffichage(produit: Produit): number {
 }
 
 export function needsConfigurator(produit: Produit): boolean {
-  return produit.type !== 'simple' ||
-    ['burgers_maison', 'sodips'].includes(produit.categorie);
+  if (produit.type !== 'simple') return true;
+  if (['burgers', 'sodips'].includes(produit.categorie)) return true;
+  return false;
 }
 
 // ── Zones de livraison ──
