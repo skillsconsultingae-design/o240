@@ -105,6 +105,44 @@ export const SAUCES_OFFERTES: SauceOption[] = [
   { id: 'sauce_harissa', nom: 'Sauce Harissa' },
 ];
 
+// ── Ingredients Sodip's Compose ──
+export const SODIPS_LEGUMES: Topping[] = [
+  { id: 'champignons', nom: 'Champignons', prix: 0.50 },
+  { id: 'cornichons', nom: 'Cornichons', prix: 0.50 },
+  { id: 'oignons_rouges', nom: 'Oignons Rouges', prix: 0.50 },
+  { id: 'olives', nom: 'Olives', prix: 0.50 },
+  { id: 'poivrons', nom: 'Poivrons', prix: 0.50 },
+  { id: 'pommes_de_terre', nom: 'Pommes de Terre', prix: 0.50 },
+  { id: 'salade', nom: 'Salade', prix: 0.50 },
+  { id: 'tomates', nom: 'Tomates', prix: 0.50 },
+];
+
+export const SODIPS_VIANDES: Topping[] = [
+  { id: 'bacon', nom: 'Bacon', prix: 1.50 },
+  { id: 'chicken_curry_s', nom: 'Chicken Curry', prix: 1.50 },
+  { id: 'chicken_tandoori_s', nom: 'Chicken Tandoori', prix: 1.50 },
+  { id: 'cordon_bleu_s', nom: 'Cordon Bleu', prix: 1.50 },
+  { id: 'escalope_s', nom: 'Escalope', prix: 1.50 },
+  { id: 'jambon_dinde', nom: 'Jambon de Dinde', prix: 1.50 },
+  { id: 'kebab_s', nom: 'Kebab', prix: 1.50 },
+  { id: 'merguez_s', nom: 'Merguez', prix: 1.50 },
+  { id: 'nuggets_s', nom: 'Nuggets', prix: 1.50 },
+  { id: 'oeuf', nom: 'Oeuf', prix: 0.50 },
+  { id: 'saumon_s', nom: 'Saumon', prix: 1.50 },
+  { id: 'steak_hache', nom: 'Steak Hache', prix: 1.50 },
+  { id: 'tenders_s', nom: 'Tenders', prix: 1.50 },
+  { id: 'thon_s', nom: 'Thon', prix: 1.50 },
+];
+
+export const SODIPS_FROMAGES: Topping[] = [
+  { id: 'boursin_f', nom: 'Boursin', prix: 0.80 },
+  { id: 'cheddar_f', nom: 'Cheddar', prix: 0.80 },
+  { id: 'chevre_f', nom: 'Chevre', prix: 0.80 },
+  { id: 'emmental_f', nom: 'Emmental', prix: 0.80 },
+  { id: 'vache_qui_rit', nom: 'La Vache Qui Rit', prix: 0.80 },
+  { id: 'raclette_f', nom: 'Raclette', prix: 0.80 },
+];
+
 // ── Toppings crepes sucrees ──
 const GOURMANDISES: Topping[] = [
   { id: 'daim', nom: 'Daim', prix: 1.00 },
@@ -148,6 +186,13 @@ export const CATALOGUE: CategorieMenu[] = [
       { id: 'burger_chicken', nom: 'CHICKEN', prix_seul: 6.50, prix_menu: 7.50, categorie: 'burgers', type: 'formule' },
       { id: 'burger_tower', nom: 'TOWER', prix_seul: 7.50, prix_menu: 8.50, categorie: 'burgers', type: 'formule' },
       { id: 'burger_180gr', nom: '180GR', prix_seul: 8.50, prix_menu: 9.50, categorie: 'burgers', type: 'formule' },
+      { id: 'burger_double_cheese', nom: 'DOUBLE CHEESE', prix: 8.00, description: '2 steaks 45g, cheddar, crudites', categorie: 'burgers', type: 'simple' },
+      { id: 'burger_fish', nom: 'FISH', prix: 7.50, description: 'Poisson pane, cheddar, crudites', categorie: 'burgers', type: 'simple' },
+      { id: 'burger_360', nom: 'LE 360', prix: 11.00, description: '2 steaks 180, cheddar, crudites', categorie: 'burgers', type: 'simple' },
+      { id: 'burger_540', nom: 'LE 540', prix: 12.50, description: '3 steaks 180, cheddar, crudites', categorie: 'burgers', type: 'simple' },
+      { id: 'burger_big_m', nom: 'LE BIG M', prix: 8.50, description: '2 steaks 45g, cheddar, crudites', categorie: 'burgers', type: 'simple' },
+      { id: 'burger_chikn_steak', nom: "CHIK'N STEAK", prix: 8.50, description: '1 steak 45g, tenders, oeuf, cheddar, crudites', categorie: 'burgers', type: 'simple' },
+      { id: 'burger_naan', nom: 'NAAN BURGER', prix: 11.00, description: '2 pains naan, 2 steaks 90g, cheddar, crudites', categorie: 'burgers', type: 'simple' },
       { id: 'gourmet', nom: 'LE GOURMET', prix: 12.50, categorie: 'burgers', type: 'simple' },
       { id: 'french', nom: 'LE FRENCH', prix: 12.50, categorie: 'burgers', type: 'simple' },
       { id: 'montagnard', nom: 'LE MONTAGNARD', prix: 12.50, categorie: 'burgers', type: 'simple' },

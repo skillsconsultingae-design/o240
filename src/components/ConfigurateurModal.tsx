@@ -12,6 +12,9 @@ import {
   BOISSONS_MENU,
   SAUCES_OFFERTES,
   PAINS_SANDWICHS,
+  SODIPS_LEGUMES,
+  SODIPS_VIANDES,
+  SODIPS_FROMAGES,
 } from '../data/catalogue';
 import { useCartStore } from '../store/cart';
 
@@ -32,6 +35,9 @@ export default function ConfigurateurModal({ produit, onClose }: Props) {
       case 'crepe_sucree':
         return <ConfigCrepe produit={produit} onClose={onClose} />;
       case 'simple':
+        if (produit.id === 'sodip_compose') {
+          return <ConfigSodipCompose produit={produit} onClose={onClose} />;
+        }
         if (CATEGORIES_AVEC_SAUCES.includes(produit.categorie)) {
           return <ConfigSimpleAvecSauces produit={produit} onClose={onClose} />;
         }
@@ -584,6 +590,140 @@ function ConfigSimpleAvecSauces({ produit, onClose }: { produit: Produit & { typ
         onConfirm={handleConfirm}
       />
     </>
+  );
+}
+
+// ────────────────────────────────────────
+// Sodip's Compose configurator
+// ────────────────────────────────────────
+
+function ConfigSodipCompose({ produit, onClose }: { produit: Produit & { type: 'simple'; prix: number }; onClose: () => void }) {
+  const addItem = useCartStore((s) => s.addItem);
+  const [legumes, setLegumes] = useState<Set<string>>(new Set());
+  const [viandes, setViandes] = useState<Set<string>>(new Set());
+  const [fromages, setFromages] = useState<Set<string>>(new Set());
+  const [sauces, setSauces] = useState<Set<string>>(new Set());
+
+  const suppLegumes = [...legumes].reduce((sum, id) => {
+    const t = SODIPS_LEGUMES.find((l) => l.id === id);
+    return sum + (t ? t.prix : 0.50);
+  }, 0);
+  const suppViandes = [...viandes].reduce((sum, id) => {
+    const t = SODIPS_VIANDES.find((v) => v.id === id);
+    return sum + (t ? t.prix : 1.50);
+  }, 0);
+  const suppFromages = [...fromages].reduce((sum, id) => {
+    const t = SODIPS_FROMAGES.find((f) => f.id === id);
+    return sum + (t ? t.prix : 0.80);
+  }, 0);
+  const totalPrice = produit.prix + suppLegumes + suppViandes + suppFromages;
+
+  function toggle(setFn: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) {
+    setFn((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleConfirm() {
+    addItem({
+      id: produit.id,
+      nom: produit.nom,
+      categorie: produit.categorie,
+      sodips_legumes: legumes.size > 0 ? [...legumes] : undefined,
+      sodips_viandes: viandes.size > 0 ? [...viandes] : undefined,
+      sodips_fromages: fromages.size > 0 ? [...fromages] : undefined,
+      sauces: sauces.size > 0 ? [...sauces] : undefined,
+    });
+    onClose();
+  }
+
+  return (
+    <>
+      <ModalHeader
+        title="COMPOSEZ VOTRE SODIP'S"
+        subtitle={`Base : ${produit.prix.toFixed(2)}€`}
+        onClose={onClose}
+      />
+
+      <div className="flex-1 overflow-y-auto p-5 space-y-6">
+        <ToppingsSection
+          title="Legumes"
+          prixLabel="+0.50€"
+          items={SODIPS_LEGUMES}
+          selected={legumes}
+          onToggle={(id) => toggle(setLegumes, id)}
+        />
+        <ToppingsSection
+          title="Viandes / Poissons"
+          prixLabel="+1.50€"
+          items={SODIPS_VIANDES}
+          selected={viandes}
+          onToggle={(id) => toggle(setViandes, id)}
+        />
+        <ToppingsSection
+          title="Fromages"
+          prixLabel="+0.80€"
+          items={SODIPS_FROMAGES}
+          selected={fromages}
+          onToggle={(id) => toggle(setFromages, id)}
+        />
+        <SaucesSection selected={sauces} onToggle={(id) => toggle(setSauces, id)} />
+      </div>
+
+      <ModalFooter
+        totalPrice={totalPrice}
+        canConfirm={true}
+        onConfirm={handleConfirm}
+      />
+    </>
+  );
+}
+
+function ToppingsSection({
+  title,
+  prixLabel,
+  items,
+  selected,
+  onToggle,
+}: {
+  title: string;
+  prixLabel: string;
+  items: { id: string; nom: string; prix: number }[];
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div>
+      <h4 className="font-semibold text-white text-sm uppercase mb-3">
+        {title} <span className="text-brand-400 font-normal">({prixLabel} chacun)</span>
+      </h4>
+      <div className="space-y-2">
+        {items.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => onToggle(t.id)}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
+              selected.has(t.id)
+                ? 'border-brand-500 bg-brand-500/10'
+                : 'border-white/5 bg-dark-800 hover:border-white/10'
+            }`}
+          >
+            <span className="text-sm text-white">{t.nom}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-brand-400">+{t.prix.toFixed(2)}€</span>
+              {selected.has(t.id) && (
+                <div className="w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center">
+                  <Check className="w-3 h-3 text-white" />
+                </div>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

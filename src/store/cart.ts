@@ -4,6 +4,9 @@ import {
   findProduit,
   BOISSONS_SUPP_ASSIETTE,
   PAINS_SANDWICHS,
+  SODIPS_LEGUMES,
+  SODIPS_VIANDES,
+  SODIPS_FROMAGES,
   type Produit,
   type ProduitSimple,
   type ProduitFormule,
@@ -31,6 +34,9 @@ export interface CartItem {
   toppings_gourmandises?: string[];
   toppings_fruits?: string[];
   sauces?: string[];
+  sodips_legumes?: string[];
+  sodips_viandes?: string[];
+  sodips_fromages?: string[];
   prix_unitaire: number;
   quantite: number;
   cartKey: string;
@@ -78,6 +84,24 @@ export function calculateItemPrice(item: Omit<CartItem, 'prix_unitaire' | 'quant
   } else {
     const p = produit as ProduitSimple;
     total = p.prix;
+    if (item.sodips_legumes) {
+      item.sodips_legumes.forEach((id) => {
+        const t = SODIPS_LEGUMES.find((l) => l.id === id);
+        total += t ? t.prix : 0.50;
+      });
+    }
+    if (item.sodips_viandes) {
+      item.sodips_viandes.forEach((id) => {
+        const t = SODIPS_VIANDES.find((v) => v.id === id);
+        total += t ? t.prix : 1.50;
+      });
+    }
+    if (item.sodips_fromages) {
+      item.sodips_fromages.forEach((id) => {
+        const t = SODIPS_FROMAGES.find((f) => f.id === id);
+        total += t ? t.prix : 0.80;
+      });
+    }
   }
 
   const prix_minimum = getPrixMinimum(produit);
@@ -119,6 +143,15 @@ function buildCartKey(item: Omit<CartItem, 'prix_unitaire' | 'quantite' | 'cartK
   }
   if (item.sauces?.length) {
     parts.push('s:' + [...item.sauces].sort().join(','));
+  }
+  if (item.sodips_legumes?.length) {
+    parts.push('sl:' + [...item.sodips_legumes].sort().join(','));
+  }
+  if (item.sodips_viandes?.length) {
+    parts.push('sv:' + [...item.sodips_viandes].sort().join(','));
+  }
+  if (item.sodips_fromages?.length) {
+    parts.push('sf:' + [...item.sodips_fromages].sort().join(','));
   }
   return parts.join('|');
 }
