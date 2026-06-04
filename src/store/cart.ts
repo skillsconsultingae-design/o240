@@ -102,6 +102,9 @@ export function calculateItemPrice(item: Omit<CartItem, 'prix_unitaire' | 'quant
         total += t ? t.prix : 0.80;
       });
     }
+    if (item.id === 'crepe_compose' && item.sauces && item.sauces.length > 2) {
+      total += (item.sauces.length - 2) * 0.20;
+    }
   }
 
   const prix_minimum = getPrixMinimum(produit);

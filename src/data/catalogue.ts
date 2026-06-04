@@ -390,6 +390,7 @@ export function getPrixAffichage(produit: Produit): number {
 export function needsConfigurator(produit: Produit): boolean {
   if (produit.type !== 'simple') return true;
   if (['burgers', 'sodips'].includes(produit.categorie)) return true;
+  if (produit.id === 'crepe_compose') return true;
   return false;
 }
 
