@@ -16,7 +16,7 @@ export default function Footer() {
               <img src="/logo240.png" alt="O'240" className="h-20 w-auto object-contain" />
             </Link>
             <p className="text-white/40 text-sm leading-relaxed mb-6">
-              Le meilleur burger a Saint-Michel-sur-Orge,
+              Les meilleurs cheese naan a Saint-Michel-sur-Orge,
               specialite Cheese Naan. Livraison a domicile et a emporter, 7j/7.
             </p>
             <div className="flex gap-3">
@@ -126,13 +126,23 @@ export default function Footer() {
           <p className="text-white/30 text-sm">
             2026 O'240 - MH FOOD FACTORY. Tous droits reserves.
           </p>
-          <div className="flex gap-6 text-sm">
+          <div className="flex items-center gap-6 text-sm">
             <Link to="/mentions-legales" className="text-white/30 hover:text-white/60 transition-colors">
               Mentions Legales
             </Link>
             <Link to="/cgv" className="text-white/30 hover:text-white/60 transition-colors">
               C.G.V
             </Link>
+            <a
+              href="https://lelaboia.fr/formule"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors"
+            >
+              <span>Composé par</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+              <span className="font-medium">Le Labo IA</span>
+            </a>
           </div>
         </div>
       </div>

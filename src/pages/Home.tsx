@@ -266,7 +266,7 @@ export default function Home() {
               Restaurant Burger - Saint-Michel-sur-Orge
             </span>
             <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-white uppercase leading-[1.05] mb-6">
-              Le Meilleur Burger a Saint-Michel-sur-Orge
+              Les Meilleurs Cheese Naan a Saint-Michel-sur-Orge
             </h1>
             <p className="text-white/60 text-lg sm:text-xl max-w-lg mb-8 leading-relaxed">
               Burgers artisanaux, specialite Cheese Naan, buckets genereux, crepes gourmandes.
