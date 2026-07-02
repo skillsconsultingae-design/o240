@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Commandes — Tableau de bord</title>
+<style>
+  :root { --bg:#0f1115; --card:#1a1d24; --line:#2a2f3a; --txt:#e6e8ec; --muted:#9aa3b2;
+          --accent:#4f7cff; --green:#25a35a; --amber:#c9860a; --red:#c8392f; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+         background:var(--bg); color:var(--txt); }
+  header { display:flex; align-items:center; justify-content:space-between;
+           padding:16px 24px; border-bottom:1px solid var(--line); }
+  h1 { font-size:18px; margin:0; }
+  .muted { color:var(--muted); }
+  button { font:inherit; border:0; border-radius:8px; padding:9px 14px; cursor:pointer; color:#fff; }
+  button.primary { background:var(--accent); }
+  button.ghost { background:transparent; border:1px solid var(--line); color:var(--txt); }
+  button.print { background:var(--green); }
+  button:disabled { opacity:.5; cursor:default; }
+  main { max-width:960px; margin:0 auto; padding:24px; }
+  .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:16px; margin-bottom:12px; }
+  .row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .badge { font-size:12px; padding:3px 9px; border-radius:999px; display:inline-block; }
+  .b-payee    { background:rgba(201,134,10,.18);  color:#f0b657; }
+  .b-imprimee { background:rgba(37,163,90,.18);   color:#5fd08a; }
+  .b-attente  { background:rgba(79,124,255,.18);  color:#8ba6ff; }
+  .lignes { margin:10px 0 0; color:var(--muted); font-size:14px; }
+  .total { font-weight:700; font-size:16px; }
+  .login { max-width:360px; margin:12vh auto; }
+  .login input { width:100%; padding:11px; margin:6px 0; border-radius:8px;
+                 border:1px solid var(--line); background:#12141a; color:var(--txt); }
+  #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+           background:#222833; border:1px solid var(--line); padding:10px 16px;
+           border-radius:8px; opacity:0; transition:.25s; pointer-events:none; }
+  #toast.show { opacity:1; }
+  .empty { text-align:center; color:var(--muted); padding:60px 0; }
+</style>
+</head>
+<body>
+
+<!-- ============ ECRAN CONNEXION ============ -->
+<div id="login" class="login" style="display:none">
+  <h1>Connexion</h1>
+  <p class="muted">Accès réservé au personnel du restaurant.</p>
+  <input id="email" type="email" placeholder="Email" autocomplete="username" />
+  <input id="password" type="password" placeholder="Mot de passe" autocomplete="current-password" />
+  <button class="primary" style="width:100%;margin-top:8px" onclick="seConnecter()">Se connecter</button>
+  <p id="loginErr" class="muted" style="color:var(--red)"></p>
+</div>
+
+<!-- ============ ECRAN PRINCIPAL ============ -->
+<div id="app" style="display:none">
+  <header>
+    <h1>🧾 Commandes <span id="who" class="muted" style="font-size:13px"></span></h1>
+    <button class="ghost" onclick="seDeconnecter()">Déconnexion</button>
+  </header>
+  <main>
+    <div class="toolbar">
+      <button class="primary" onclick="commandeTest()">＋ Créer une commande test</button>
+      <button class="ghost" onclick="charger()">↻ Rafraîchir</button>
+      <span class="muted" id="live">● temps réel</span>
+    </div>
+    <div id="liste"></div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ==========================================================================
+//  CONFIG — a remplir (Dashboard Supabase > Project Settings > API)
+//  L'anon key est publique par nature : c'est RLS + le login qui protegent.
+// ==========================================================================
+const SUPABASE_URL = 'https://xxxxxxxx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOi...';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ---------- helpers ----------
+const $ = (id) => document.getElementById(id);
+const euros = (c) => (Number(c||0)/100).toLocaleString('fr-FR',{minimumFractionDigits:2}) + ' €';
+const heure = (iso) => new Date(iso).toLocaleString('fr-FR',
+  { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200); }
+
+const BADGE = {
+  payee:    ['b-payee','payée'],
+  imprimee: ['b-imprimee','imprimée'],
+  en_attente_paiement: ['b-attente','en attente paiement'],
+  terminee: ['b-imprimee','terminée'],
+};
+
+// ---------- auth ----------
+async function seConnecter(){
+  $('loginErr').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({
+    email: $('email').value.trim(), password: $('password').value,
+  });
+  if (error) { $('loginErr').textContent = error.message; return; }
+  demarrer();
+}
+async function seDeconnecter(){ await sb.auth.signOut(); location.reload(); }
+
+// ---------- chargement des commandes ----------
+async function charger(){
+  const { data, error } = await sb
+    .from('commandes')
+    .select('*, commande_lignes(*)')
+    .neq('statut', 'en_attente_paiement')       // on masque les paniers non payes
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (error) { toast('Erreur : ' + error.message); return; }
+  rendre(data || []);
+}
+
+function rendre(commandes){
+  const liste = $('liste');
+  if (!commandes.length){ liste.innerHTML = '<div class="empty">Aucune commande pour le moment.</div>'; return; }
+
+  liste.innerHTML = commandes.map(c => {
+    const [cls, label] = BADGE[c.statut] || ['b-attente', c.statut];
+    const lignes = (c.commande_lignes||[])
+      .map(l => `${l.quantite}× ${l.nom}`).join(' · ') || '—';
+    return `
+      <div class="card">
+        <div class="row">
+          <div>
+            <strong>Commande #${c.numero ?? ''}</strong>
+            <span class="badge ${cls}">${label}</span>
+            <div class="muted" style="font-size:13px;margin-top:2px">
+              ${heure(c.created_at)}${c.mode ? ' · '+(c.mode==='delivery'?'🛵 Livraison':'🛍️ À emporter') : ''}${c.client_nom ? ' · '+c.client_nom : ''}${c.client_tel ? ' · '+c.client_tel : ''}
+            </div>
+            ${c.adresse ? `<div class="muted" style="font-size:13px">📍 ${c.adresse}</div>` : ''}
+            <div class="lignes">${lignes}</div>
+            ${c.notes ? `<div class="lignes">📝 ${c.notes}</div>` : ''}
+          </div>
+          <div style="text-align:right">
+            <div class="total">${euros(c.total_centimes)}</div>
+            <button class="print" style="margin-top:8px" onclick="imprimer('${c.id}', this)">🖨️ Imprimer</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ---------- (re)impression : on cree un job, l'agent s'en occupe ----------
+async function imprimer(commandeId, btn){
+  btn.disabled = true; btn.textContent = '…';
+  const { error } = await sb.from('impressions').insert({ commande_id: commandeId });
+  btn.disabled = false; btn.textContent = '🖨️ Imprimer';
+  toast(error ? ('Erreur : ' + error.message) : 'Impression lancée ✔');
+}
+
+// ---------- commande de test (simule une commande payee + lance l'impression) ----------
+async function commandeTest(){
+  const { data: c, error } = await sb.from('commandes').insert({
+    statut: 'payee',
+    total_centimes: 2150,
+    table_num: 'Test',
+    client_nom: 'Commande de test',
+    notes: 'Ceci est un test d\'impression',
+  }).select().single();
+  if (error) { toast('Erreur : ' + error.message); return; }
+
+  await sb.from('commande_lignes').insert([
+    { commande_id: c.id, nom: 'Burger maison', quantite: 2, prix_centimes: 850 },
+    { commande_id: c.id, nom: 'Frites',        quantite: 1, prix_centimes: 450 },
+  ]);
+  await sb.from('impressions').insert({ commande_id: c.id });   // -> l'agent imprime
+
+  toast('Commande test créée + impression lancée ✔');
+  charger();
+}
+
+// ---------- temps reel : la liste se met a jour toute seule ----------
+function ecouterRealtime(){
+  sb.channel('dashboard')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'commandes' }, charger)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'impressions' }, charger)
+    .subscribe();
+}
+
+// ---------- demarrage ----------
+async function demarrer(){
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user){ $('login').style.display='block'; $('app').style.display='none'; return; }
+  $('login').style.display='none'; $('app').style.display='block';
+  $('who').textContent = '— ' + user.email;
+  await charger();
+  ecouterRealtime();
+}
+demarrer();
+</script>
+</body>
+</html>

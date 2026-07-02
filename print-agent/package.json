@@ -1,0 +1,16 @@
+{
+  "name": "resto-print-agent",
+  "version": "1.0.0",
+  "description": "Agent d'impression tickets client (Epson TM-T20II) branche sur les commandes Supabase",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test-print": "node index.js --test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "node-thermal-printer": "^4.4.4"
+  }
+}
