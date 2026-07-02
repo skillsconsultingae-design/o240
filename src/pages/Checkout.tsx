@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Truck, ShoppingBag, Minus, Plus, MapPin, Check, Lock,
@@ -9,6 +10,7 @@ import { useCartStore } from '../store/cart';
 import { ZONES_LIVRAISON } from '../data/catalogue';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import UpsellSuggestions from '../components/UpsellSuggestions';
+import { startCheckout } from '../lib/checkout';
 
 const steps = [
   { id: 1, label: 'Mode' },
@@ -31,6 +33,35 @@ export default function Checkout() {
 
   const [showZones, setShowZones] = useState(false);
   const [triedSubmitStep3, setTriedSubmitStep3] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Retour depuis Stripe : succes -> confirmation, annulation -> on reste sur le panier
+  useEffect(() => {
+    if (searchParams.get('success')) {
+      clearCart();
+      setOrderStep(5);
+      setSearchParams({}, { replace: true });
+    } else if (searchParams.get('canceled')) {
+      toast.error('Paiement annulé, votre panier est conservé.');
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handlePay = async () => {
+    setPayError(null);
+    setPaying(true);
+    try {
+      await startCheckout({ items, customer: customerInfo, deliveryMode });
+      // startCheckout redirige vers Stripe : le code ci-dessous n'est pas atteint en cas de succes
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : 'Erreur lors du paiement');
+      setPaying(false);
+    }
+  };
 
   const step3Errors = {
     firstName: !customerInfo.firstName.trim(),
@@ -55,7 +86,7 @@ export default function Checkout() {
       if (!canProceed()) return;
     }
     if (orderStep === 4) {
-      setOrderStep(5);
+      handlePay();
       return;
     }
     if (canProceed()) {
@@ -448,38 +479,22 @@ export default function Checkout() {
               </h2>
               <div className="max-w-lg mx-auto">
                 <div className="bg-dark-900 rounded-xl p-6 border border-white/5 mb-6">
-                  <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center gap-3 mb-4">
                     <CreditCard className="w-5 h-5 text-brand-500" />
-                    <span className="font-medium text-white">Carte bancaire</span>
+                    <span className="font-medium text-white">Paiement par carte bancaire</span>
                   </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm text-white/60 mb-2">Numero de carte</label>
-                      <input
-                        type="text"
-                        className="w-full bg-dark-800 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-brand-500 focus:outline-none transition-colors"
-                        placeholder="4242 4242 4242 4242"
-                      />
+                  <p className="text-sm text-white/50 leading-relaxed">
+                    Vous allez être redirigé vers notre page de paiement sécurisée
+                    <span className="text-white/80"> Stripe</span> pour régler votre commande
+                    (CB, Apple&nbsp;Pay, Google&nbsp;Pay). Aucune donnée bancaire ne transite
+                    par notre site.
+                  </p>
+                  {payError && (
+                    <div className="flex items-start gap-2 mt-4 p-3 bg-error-500/10 border border-error-500/20 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-error-400 shrink-0 mt-0.5" />
+                      <p className="text-sm text-error-400">{payError}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm text-white/60 mb-2">Expiration</label>
-                        <input
-                          type="text"
-                          className="w-full bg-dark-800 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-brand-500 focus:outline-none transition-colors"
-                          placeholder="MM/AA"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-white/60 mb-2">CVC</label>
-                        <input
-                          type="text"
-                          className="w-full bg-dark-800 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-brand-500 focus:outline-none transition-colors"
-                          placeholder="123"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="bg-dark-900 rounded-xl p-6 border border-white/5 mb-6">
@@ -559,15 +574,17 @@ export default function Checkout() {
             </button>
             <button
               onClick={handleNext}
-              disabled={!canProceed()}
+              disabled={!canProceed() || paying}
               className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all ${
-                canProceed()
+                canProceed() && !paying
                   ? 'bg-brand-500 hover:bg-brand-600 text-white'
                   : 'bg-dark-800 text-white/30 cursor-not-allowed'
               }`}
             >
-              {orderStep === 4 ? `Payer ${total.toFixed(2)}€` : 'Continuer'}
-              <ArrowRight className="w-5 h-5" />
+              {orderStep === 4
+                ? (paying ? 'Redirection...' : `Payer ${total.toFixed(2)}€`)
+                : 'Continuer'}
+              {!paying && <ArrowRight className="w-5 h-5" />}
             </button>
           </div>
         )}

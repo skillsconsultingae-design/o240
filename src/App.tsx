@@ -11,6 +11,7 @@ import BlogBurger from './pages/BlogBurger';
 import BlogMenuEnfant from './pages/BlogMenuEnfant';
 import BlogBucket from './pages/BlogBucket';
 import Checkout from './pages/Checkout';
+import Commandes from './pages/Commandes';
 import Livraison from './pages/Livraison';
 import Contact from './pages/Contact';
 import LegalMentions from './pages/LegalMentions';
@@ -49,6 +50,7 @@ function AnimatedRoutes() {
           <Route path="/blog/menu-enfant-burger-saint-michel-sur-orge" element={<BlogMenuEnfant />} />
           <Route path="/blog/bucket-tenders-wings-saint-michel-sur-orge" element={<BlogBucket />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/commandes" element={<Commandes />} />
           <Route path="/livraison" element={<Livraison />} />
           <Route path="/zones-de-livraison" element={<Livraison />} />
           <Route path="/contact" element={<Contact />} />
