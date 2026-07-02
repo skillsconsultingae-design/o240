@@ -1,0 +1,21 @@
+# Dependencies
+node_modules
+
+# Build
+dist
+dist-ssr
+
+# Variables d'environnement (NE JAMAIS committer — contiennent des cles)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editeurs / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
