@@ -1,6 +1,14 @@
 import 'dotenv/config';
+import { spawn } from 'node:child_process';
+import { writeFile, unlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import { ThermalPrinter, PrinterTypes } from 'node-thermal-printer';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PS_SCRIPT = join(__dirname, 'print-raw.ps1');
 
 // ---------------------------------------------------------------------------
 // Config
@@ -24,18 +32,52 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
 });
 
 // ---------------------------------------------------------------------------
-// Imprimante — TM-T20II en 80 mm via le driver Windows (spooler)
+// Imprimante — TM-T20II en 80 mm
 // ---------------------------------------------------------------------------
+// On NE se connecte PAS a l'imprimante via node-thermal-printer (son interface
+// "printer:" reclame un module natif a compiler sous Windows = galere). A la
+// place : on construit le ticket ESC/POS en memoire (getBuffer), puis on envoie
+// les octets bruts a l'imprimante Windows via print-raw.ps1 (API winspool).
+// L'interface ci-dessous est donc fictive : on n'ouvre jamais ce socket.
 function makePrinter() {
   return new ThermalPrinter({
     type: PrinterTypes.EPSON,
-    interface: `printer:${PRINTER_NAME}`, // passe par le driver Epson installe sous Windows
-    driver: 'default',
+    interface: 'tcp://localhost',         // fictif : jamais connecte, on lit getBuffer()
     width: 48,                            // 80 mm, Font A = 48 caracteres
     characterSet: 'WPC1252',              // Latin-1 -> accents FR corrects (a modifier si soucis)
     removeSpecialCharacters: false,
     options: { timeout: 5000 },
   });
+}
+
+// Envoie un buffer ESC/POS brut a l'imprimante Windows via print-raw.ps1.
+let __jobSeq = 0;
+async function envoyerBrut(buffer) {
+  const tmpFile = join(tmpdir(), `resto-ticket-${process.pid}-${__jobSeq++}.bin`);
+  await writeFile(tmpFile, buffer);
+  try {
+    await new Promise((resolve, reject) => {
+      const ps = spawn(
+        'powershell.exe',
+        [
+          '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+          '-File', PS_SCRIPT,
+          '-PrinterName', PRINTER_NAME,
+          '-FilePath', tmpFile,
+        ],
+        { windowsHide: true },
+      );
+      let stderr = '';
+      ps.stderr.on('data', (d) => { stderr += d.toString(); });
+      ps.on('error', reject); // ex: powershell.exe introuvable
+      ps.on('close', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(stderr.trim() || `PowerShell a renvoye le code ${code}`));
+      });
+    });
+  } finally {
+    await unlink(tmpFile).catch(() => {});
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -60,11 +102,6 @@ function dateHeure(iso) {
 // ---------------------------------------------------------------------------
 async function imprimerTicket(commande, lignes) {
   const printer = makePrinter();
-
-  const connectee = await printer.isPrinterConnected();
-  if (!connectee) {
-    throw new Error(`Imprimante "${PRINTER_NAME}" injoignable (allumee ? nom exact ? driver installe ?)`);
-  }
 
   // --- En-tete resto ---
   printer.alignCenter();
@@ -128,7 +165,7 @@ async function imprimerTicket(commande, lignes) {
   printer.newLine();
   printer.cut();
 
-  await printer.execute(); // envoie le job a l'imprimante
+  await envoyerBrut(printer.getBuffer()); // octets ESC/POS -> imprimante Windows (winspool)
 }
 
 // ---------------------------------------------------------------------------
