@@ -139,8 +139,11 @@ export default function Footer() {
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors"
             >
-              <span>Composé par</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+              <span>Site réalisé par</span>
+              <span className="relative flex items-center justify-center" aria-hidden="true">
+                <span className="absolute w-3 h-3 rounded-full bg-emerald-400/70 blur-[3px] animate-pulse" />
+                <span className="relative w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_1px_rgba(52,211,153,0.9)]" />
+              </span>
               <span className="font-medium">Le Labo IA</span>
             </a>
           </div>
