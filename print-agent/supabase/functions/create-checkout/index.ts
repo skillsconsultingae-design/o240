@@ -113,6 +113,18 @@ Deno.serve(async (req) => {
       .single();
     if (error) throw error;
 
+    // Detail des options (pain, sauces, boisson menu...) : liste de courtes
+    // chaines, nettoyee par securite (c'est le client qui l'envoie)
+    const nettoyerDetails = (d: unknown): string[] | null => {
+      if (!Array.isArray(d)) return null;
+      const clean = d
+        .filter((x) => typeof x === 'string')
+        .map((x) => x.trim().slice(0, 80))
+        .filter((x) => x.length > 0)
+        .slice(0, 20);
+      return clean.length > 0 ? clean : null;
+    };
+
     // Lignes de commande (+ ligne "Frais de gestion" si paiement en ligne,
     // pour qu'elle apparaisse sur le ticket et le dashboard)
     const lignes = panier.map((i: any) => ({
@@ -120,6 +132,7 @@ Deno.serve(async (req) => {
       nom: i.nom,
       quantite: Number(i.quantite),
       prix_centimes: Number(i.prix_centimes),
+      details: nettoyerDetails(i.details),
     }));
     if (frais > 0) {
       lignes.push({
@@ -127,6 +140,7 @@ Deno.serve(async (req) => {
         nom: FRAIS_GESTION_LIBELLE,
         quantite: 1,
         prix_centimes: frais,
+        details: null,
       });
     }
     await supabase.from('commande_lignes').insert(lignes);
@@ -143,14 +157,21 @@ Deno.serve(async (req) => {
     // 2b) Paiement en ligne : session Stripe Checkout — lien via metadata.commande_id
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { apiVersion: '2024-06-20' });
 
-    const lineItems = panier.map((i: any) => ({
-      price_data: {
-        currency: 'eur',
-        product_data: { name: i.nom },
-        unit_amount: Number(i.prix_centimes),
-      },
-      quantity: Number(i.quantite),
-    }));
+    const lineItems = panier.map((i: any) => {
+      const details = nettoyerDetails(i.details);
+      return {
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: i.nom,
+            // Les options apparaissent sur la page de paiement Stripe
+            ...(details ? { description: details.join(' · ').slice(0, 500) } : {}),
+          },
+          unit_amount: Number(i.prix_centimes),
+        },
+        quantity: Number(i.quantite),
+      };
+    });
     lineItems.push({
       price_data: {
         currency: 'eur',

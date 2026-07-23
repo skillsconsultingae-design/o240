@@ -20,6 +20,8 @@ const {
   RESTO_NOM = 'RESTAURANT',
   RESTO_ADRESSE = '',
   RESTO_TEL = '',
+  RESTO_SIRET = '',        // optionnel : affiche en pied de ticket client
+  RESTO_TVA_INTRA = '',    // optionnel : numero TVA intracommunautaire
 } = process.env;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -98,9 +100,98 @@ function dateHeure(iso) {
 }
 
 // ---------------------------------------------------------------------------
-// Impression d'un ticket CLIENT (avec prix + total)
+// Helpers tickets
 // ---------------------------------------------------------------------------
-async function imprimerTicket(commande, lignes) {
+const FRAIS_LIBELLE = 'Frais de gestion';
+const estFrais = (l) => l.nom === FRAIS_LIBELLE;
+
+// Detail des options d'une ligne (colonne jsonb "details" : tableau de chaines)
+function detailsDe(ligne) {
+  return Array.isArray(ligne.details) ? ligne.details.filter((d) => typeof d === 'string') : [];
+}
+
+function nbArticles(lignes) {
+  return lignes.filter((l) => !estFrais(l)).reduce((s, l) => s + Number(l.quantite || 0), 0);
+}
+
+function numeroCommande(commande) {
+  return String(commande.numero ?? commande.id?.slice(0, 8) ?? '-');
+}
+
+function ligneMode(commande) {
+  return commande.mode === 'delivery' ? 'A LIVRER' : 'A EMPORTER';
+}
+
+// ---------------------------------------------------------------------------
+// Ticket CUISINE : sans prix, gros numero, options detaillees
+// ---------------------------------------------------------------------------
+async function imprimerTicketCuisine(commande, lignes) {
+  const printer = makePrinter();
+  const articles = lignes.filter((l) => !estFrais(l)); // la cuisine n'a que faire des frais
+
+  // --- En-tete ---
+  printer.alignLeft();
+  printer.tableCustom([
+    { text: 'CUISINE', align: 'LEFT', width: 0.5, bold: true },
+    { text: 'Imp:' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), align: 'RIGHT', width: 0.5 },
+  ]);
+  printer.println('o240.fr - commande en ligne');
+  printer.println(dateHeure(commande.created_at));
+  printer.newLine();
+
+  // --- Numero de commande en tres gros ---
+  printer.alignCenter();
+  printer.bold(true);
+  printer.setTextQuadArea(); // double largeur + double hauteur
+  printer.println(`>> ${numeroCommande(commande)} <<`);
+  printer.setTextNormal();
+
+  // --- Mode + paiement ---
+  printer.setTextDoubleHeight();
+  printer.println(ligneMode(commande));
+  printer.setTextNormal();
+  if (commande.paiement === 'sur_place') {
+    printer.println('** A ENCAISSER **');
+  }
+  printer.bold(false);
+
+  // --- Client ---
+  printer.alignLeft();
+  if (commande.client_nom) printer.println(commande.client_nom.toUpperCase());
+  printer.drawLine();
+
+  // --- Articles (sans prix), options indentees ---
+  for (const l of articles) {
+    printer.bold(true);
+    printer.setTextDoubleHeight();
+    printer.println(`${l.quantite} ${l.nom.toUpperCase()}`);
+    printer.setTextNormal();
+    printer.bold(false);
+    for (const d of detailsDe(l)) {
+      printer.println(`   > ${d}`);
+    }
+    printer.drawLine();
+  }
+
+  // --- Note (importante pour la preparation) ---
+  if (commande.notes) {
+    printer.bold(true);
+    printer.println('NOTE : ' + commande.notes);
+    printer.bold(false);
+    printer.drawLine();
+  }
+
+  printer.println(`Nb articles ${nbArticles(lignes)}`);
+  printer.newLine();
+  printer.cut();
+
+  await envoyerBrut(printer.getBuffer());
+}
+
+// ---------------------------------------------------------------------------
+// Ticket CLIENT : en-tete resto, prix, total, TVA, mentions legales
+// ---------------------------------------------------------------------------
+async function imprimerTicketClient(commande, lignes) {
   const printer = makePrinter();
 
   // --- En-tete resto ---
@@ -114,68 +205,96 @@ async function imprimerTicket(commande, lignes) {
   if (RESTO_TEL) printer.println('Tel : ' + RESTO_TEL);
   printer.newLine();
 
-  // --- Infos commande ---
+  // --- Numero + mode ---
+  printer.bold(true);
+  printer.println(`** ${ligneMode(commande)} ${numeroCommande(commande)} **`);
+  printer.bold(false);
   printer.alignLeft();
-  printer.println(`Commande #${commande.numero ?? commande.id?.slice(0, 8) ?? '-'}`);
   printer.println(dateHeure(commande.created_at));
-  if (commande.mode) {
-    printer.bold(true);
-    printer.println(commande.mode === 'delivery' ? '>> LIVRAISON' : '>> A EMPORTER');
-    printer.bold(false);
-  }
-  // Statut du paiement : le personnel doit savoir s'il faut encaisser
+
+  // --- Paiement : le client et le personnel doivent savoir ---
   if (commande.paiement === 'sur_place') {
     printer.bold(true);
     printer.setTextDoubleHeight();
-    printer.println(commande.mode === 'delivery' ? '** A ENCAISSER (LIVRAISON) **' : '** A ENCAISSER SUR PLACE **');
+    printer.println(commande.mode === 'delivery' ? '** A REGLER AU LIVREUR **' : '** A REGLER SUR PLACE **');
     printer.setTextNormal();
     printer.bold(false);
-  } else if (commande.paiement === 'en_ligne') {
-    printer.println('Paye en ligne');
+  } else {
+    printer.println('Paye en ligne (CB)');
   }
-  if (commande.table_num) printer.println(`Table : ${commande.table_num}`);
-  if (commande.client_nom) printer.println(`Client : ${commande.client_nom}`);
-  if (commande.client_tel) printer.println(`Tel : ${commande.client_tel}`);
-  if (commande.adresse) printer.println(`Adr : ${commande.adresse}`);
+
+  // --- Client ---
+  if (commande.table_num || commande.client_nom || commande.client_tel || commande.adresse) {
+    printer.drawLine();
+    if (commande.table_num) printer.println(`Table : ${commande.table_num}`);
+    if (commande.client_nom) printer.println(commande.client_nom);
+    if (commande.adresse) printer.println(commande.adresse);
+    if (commande.client_tel) printer.println(commande.client_tel);
+  }
   printer.drawLine();
 
-  // --- Lignes (article a gauche, prix a droite) ---
+  // --- Lignes avec prix + options indentees ---
   let totalCalc = 0;
   for (const l of lignes) {
     const sousTotal = Number(l.prix_centimes || 0) * Number(l.quantite || 0);
     totalCalc += sousTotal;
     printer.tableCustom([
-      { text: `${l.quantite}x ${l.nom}`, align: 'LEFT', width: 0.68 },
+      { text: `${l.quantite} ${l.nom}`, align: 'LEFT', width: 0.68 },
       { text: euros(sousTotal), align: 'RIGHT', width: 0.32 },
     ]);
+    for (const d of detailsDe(l)) {
+      printer.println(`  > ${d}`);
+    }
   }
   printer.drawLine();
 
-  // --- Total (celui de la commande si present, sinon calcule) ---
+  // --- Net a payer ---
   const total = commande.total_centimes ?? totalCalc;
   printer.bold(true);
   printer.setTextDoubleHeight();
   printer.tableCustom([
-    { text: 'TOTAL', align: 'LEFT', width: 0.5 },
-    { text: euros(total), align: 'RIGHT', width: 0.5 },
+    { text: 'NET A PAYER TTC', align: 'LEFT', width: 0.55 },
+    { text: euros(total), align: 'RIGHT', width: 0.45 },
   ]);
   printer.setTextNormal();
   printer.bold(false);
 
+  // --- TVA 10 % (restauration a emporter / livraison, prix TTC) ---
+  const ht = Math.round(total / 1.1);
+  const tva = total - ht;
+  printer.drawLine();
+  printer.println('TVA      Mnt-tva     Base HT    Base TTC');
+  printer.tableCustom([
+    { text: '10%', align: 'LEFT', width: 0.2 },
+    { text: euros(tva), align: 'RIGHT', width: 0.27 },
+    { text: euros(ht), align: 'RIGHT', width: 0.27 },
+    { text: euros(total), align: 'RIGHT', width: 0.26 },
+  ]);
+
   // --- Note eventuelle ---
   if (commande.notes) {
-    printer.newLine();
+    printer.drawLine();
     printer.println('Note : ' + commande.notes);
   }
 
   // --- Pied de ticket ---
+  printer.drawLine();
+  printer.println(`Nb articles : ${nbArticles(lignes)}`);
+  if (RESTO_SIRET) printer.println(`Siret : ${RESTO_SIRET}`);
+  if (RESTO_TVA_INTRA) printer.println(`TVA : ${RESTO_TVA_INTRA}`);
   printer.newLine();
   printer.alignCenter();
-  printer.println('Merci de votre visite !');
+  printer.println('MERCI POUR VOTRE COMMANDE - A BIENTOT');
   printer.newLine();
   printer.cut();
 
-  await envoyerBrut(printer.getBuffer()); // octets ESC/POS -> imprimante Windows (winspool)
+  await envoyerBrut(printer.getBuffer());
+}
+
+// Imprime les deux tickets d'une commande : cuisine d'abord, client ensuite
+async function imprimerTicket(commande, lignes) {
+  await imprimerTicketCuisine(commande, lignes);
+  await imprimerTicketClient(commande, lignes);
 }
 
 // ---------------------------------------------------------------------------
@@ -249,18 +368,24 @@ function ecouter() {
 // Ticket de test : node index.js --test
 // ---------------------------------------------------------------------------
 async function ticketTest() {
-  console.log('[test] Impression d\'un ticket de demonstration...');
+  console.log('[test] Impression des tickets de demonstration (cuisine + client)...');
   await imprimerTicket(
     {
       numero: 'TEST', created_at: new Date().toISOString(),
-      table_num: '5', client_nom: 'Demo', total_centimes: 2150, notes: 'Sans oignons',
+      client_nom: 'Demo', client_tel: '0612345678',
+      mode: 'pickup', paiement: 'sur_place',
+      total_centimes: 2245, notes: 'Sans oignons',
     },
     [
-      { nom: 'Burger maison', quantite: 2, prix_centimes: 850 },
+      {
+        nom: 'Sandwich Tandoori (Menu)', quantite: 2, prix_centimes: 850,
+        details: ['Pain : Cheese Naan', 'Sauces : Chili Thai', 'Boisson : Fanta Citron 33cl'],
+      },
       { nom: 'Frites', quantite: 1, prix_centimes: 450 },
+      { nom: 'Frais de gestion', quantite: 1, prix_centimes: 95 },
     ]
   );
-  console.log('[test] Termine. Le ticket est-il sorti correctement ?');
+  console.log('[test] Termine. Les 2 tickets sont-ils sortis (cuisine sans prix, client avec prix) ?');
 }
 
 // ---------------------------------------------------------------------------

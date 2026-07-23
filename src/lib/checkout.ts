@@ -1,5 +1,14 @@
 import { supabase } from './supabase';
 import type { CartItem } from '../store/cart';
+import {
+  findProduit,
+  PAINS_SANDWICHS,
+  SAUCES_OFFERTES,
+  BOISSONS_SUPP_ASSIETTE,
+  SODIPS_LEGUMES,
+  SODIPS_VIANDES,
+  SODIPS_FROMAGES,
+} from '../data/catalogue';
 
 export interface CustomerInfo {
   firstName: string;
@@ -15,6 +24,59 @@ function itemLabel(item: CartItem): string {
   if (item.formule === 'menu') return `${item.nom} (Menu)`;
   if (item.formule === 'seul') return `${item.nom} (Seul)`;
   return item.nom;
+}
+
+// Detail des options choisies (pain, viandes, sauces, boisson...) : transmis
+// au restaurant pour que la cuisine sache exactement quoi preparer.
+function itemDetails(item: CartItem): string[] {
+  const details: string[] = [];
+
+  if (item.pain) {
+    const pain = PAINS_SANDWICHS.find((p) => p.id === item.pain);
+    if (pain) details.push(`Pain : ${pain.nom}`);
+  }
+  if (item.viandes?.length) {
+    for (const v of item.viandes) {
+      details.push(v.quantite > 1 ? `${v.quantite}x ${v.nom}` : v.nom);
+    }
+  }
+  if (item.sauces?.length) {
+    const noms = item.sauces.map((id) => SAUCES_OFFERTES.find((s) => s.id === id)?.nom ?? id);
+    details.push(`Sauces : ${noms.join(', ')}`);
+  }
+  if (item.boisson_menu) {
+    details.push(`Boisson : ${item.boisson_menu}`);
+  }
+  if (item.boissons_supp?.length) {
+    for (const id of item.boissons_supp) {
+      const b = BOISSONS_SUPP_ASSIETTE.find((x) => x.id === id);
+      details.push(`Boisson : ${b?.nom ?? id}`);
+    }
+  }
+  // Toppings crepes sucrees (definis par produit)
+  const produit = findProduit(item.id);
+  if (produit?.type === 'crepe_sucree') {
+    for (const id of item.toppings_gourmandises ?? []) {
+      const t = produit.toppings_gourmandises.find((g) => g.id === id);
+      details.push(t?.nom ?? id);
+    }
+    for (const id of item.toppings_fruits ?? []) {
+      const t = produit.toppings_fruits.find((f) => f.id === id);
+      details.push(t?.nom ?? id);
+    }
+  }
+  // Ingredients Sodip's compose
+  for (const id of item.sodips_legumes ?? []) {
+    details.push(SODIPS_LEGUMES.find((x) => x.id === id)?.nom ?? id);
+  }
+  for (const id of item.sodips_viandes ?? []) {
+    details.push(SODIPS_VIANDES.find((x) => x.id === id)?.nom ?? id);
+  }
+  for (const id of item.sodips_fromages ?? []) {
+    details.push(SODIPS_FROMAGES.find((x) => x.id === id)?.nom ?? id);
+  }
+
+  return details;
 }
 
 export interface CheckoutResult {
@@ -44,6 +106,7 @@ export async function startCheckout(params: {
     nom: itemLabel(i),
     quantite: i.quantite,
     prix_centimes: Math.round(i.prix_unitaire * 100),
+    details: itemDetails(i),
   }));
 
   const origin = window.location.origin;
