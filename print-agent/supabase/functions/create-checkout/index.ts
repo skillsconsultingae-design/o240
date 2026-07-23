@@ -16,6 +16,42 @@ const cors = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// ── Minimums de commande par zone de livraison ──
+// Miroir de src/data/catalogue.ts (ZONES_LIVRAISON) : toute modification
+// doit etre reportee des deux cotes.
+const ZONES_LIVRAISON = [
+  { minimum: 10, villes: ['saint michel sur orge', 'st michel sur orge'], codesPostaux: ['91240'] },
+  { minimum: 15, villes: ['bretigny sur orge', 'sainte genevieve des bois', 'ste genevieve des bois'], codesPostaux: [] },
+  { minimum: 20, villes: ['bondoufle', 'fleury merogis', 'plessis pate', 'linas', 'longpont sur orge', 'montlhery', 'villiers sur orge'], codesPostaux: ['91070'] },
+  { minimum: 25, villes: ['arpajon', 'ballainvilliers', 'la ville du bois', 'marcoussis', 'nozay', 'saint germain les arpajon', 'st germain les arpajon', 'villemoisson sur orge'], codesPostaux: ['91290', '91160', '91620', '91460', '91180', '91360'] },
+];
+
+function normaliserAdresse(texte: string): string {
+  return texte
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[-',.]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function trouverZoneLivraison(adresse: string) {
+  const addr = ` ${normaliserAdresse(adresse)} `;
+  for (const zone of ZONES_LIVRAISON) {
+    if (zone.villes.some((v) => addr.includes(` ${v} `))) return zone;
+  }
+  const cp = adresse.match(/\b(91\d{3})\b/)?.[1];
+  if (cp) {
+    for (const zone of ZONES_LIVRAISON) {
+      if (zone.codesPostaux.includes(cp)) return zone;
+    }
+    // 91220 / 91700 partages entre deux zones : on retient le minimum le plus bas
+    if (cp === '91220' || cp === '91700') return ZONES_LIVRAISON[1];
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 
@@ -38,6 +74,16 @@ Deno.serve(async (req) => {
     const total = panier.reduce(
       (s: number, i: any) => s + Number(i.prix_centimes) * Number(i.quantite), 0,
     );
+
+    // Controle du minimum de commande pour la livraison (le front fait le meme
+    // controle, celui-ci garantit qu'il n'est pas contournable)
+    if (mode === 'delivery') {
+      const zone = trouverZoneLivraison(String(adresse || ''));
+      if (!zone) throw new Error('Adresse hors de nos zones de livraison');
+      if (total < zone.minimum * 100) {
+        throw new Error(`Minimum de commande de ${zone.minimum}€ non atteint pour votre zone`);
+      }
+    }
 
     const { data: commande, error } = await supabase
       .from('commandes')

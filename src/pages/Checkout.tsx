@@ -7,7 +7,7 @@ import {
   CreditCard, ArrowLeft, ArrowRight, ChevronRight, Phone, AlertCircle, Trash2,
 } from 'lucide-react';
 import { useCartStore } from '../store/cart';
-import { ZONES_LIVRAISON } from '../data/catalogue';
+import { ZONES_LIVRAISON, trouverZoneLivraison } from '../data/catalogue';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import UpsellSuggestions from '../components/UpsellSuggestions';
 import { startCheckout } from '../lib/checkout';
@@ -63,6 +63,8 @@ export default function Checkout() {
     }
   };
 
+  const total = getTotal();
+
   const step3Errors = {
     firstName: !customerInfo.firstName.trim(),
     lastName: !customerInfo.lastName.trim(),
@@ -70,12 +72,22 @@ export default function Checkout() {
     address: deliveryMode === 'delivery' && !customerInfo.address.trim(),
   };
 
+  // Minimum de commande selon la zone de livraison detectee depuis l'adresse
+  const zoneLivraison = deliveryMode === 'delivery' && customerInfo.address.trim()
+    ? trouverZoneLivraison(customerInfo.address)
+    : null;
+  const horsZone = deliveryMode === 'delivery' && !!customerInfo.address.trim() && !zoneLivraison;
+  const minimumManquant = zoneLivraison && total < zoneLivraison.minimum
+    ? zoneLivraison.minimum - total
+    : 0;
+  const livraisonOk = deliveryMode !== 'delivery' || (!horsZone && minimumManquant === 0);
+
   const canProceed = () => {
     switch (orderStep) {
       case 1: return deliveryMode !== null;
       case 2: return items.length > 0;
-      case 3: return !step3Errors.firstName && !step3Errors.lastName && !step3Errors.phone && !step3Errors.address;
-      case 4: return true;
+      case 3: return !step3Errors.firstName && !step3Errors.lastName && !step3Errors.phone && !step3Errors.address && livraisonOk;
+      case 4: return livraisonOk;
       default: return false;
     }
   };
@@ -98,8 +110,6 @@ export default function Checkout() {
     if (orderStep > 1) setOrderStep(orderStep - 1);
     else navigate('/menu');
   };
-
-  const total = getTotal();
 
   return (
     <main className="pt-24 pb-20 min-h-screen">
@@ -450,6 +460,47 @@ export default function Checkout() {
                         Adresse de livraison requise
                       </p>
                     )}
+
+                    {/* Controle de la zone de livraison et du minimum de commande */}
+                    {zoneLivraison && minimumManquant > 0 && (
+                      <div className="flex items-start gap-2 mt-2 p-3 bg-error-500/10 border border-error-500/20 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-error-400 shrink-0 mt-0.5" />
+                        <div className="text-xs leading-relaxed">
+                          <p className="text-error-400 font-medium">
+                            Minimum de commande non atteint pour votre zone : {zoneLivraison.minimum}€
+                          </p>
+                          <p className="text-white/50 mt-1">
+                            Il manque {minimumManquant.toFixed(2)}€ à votre panier ({total.toFixed(2)}€).{' '}
+                            <button
+                              onClick={() => navigate('/menu')}
+                              className="text-brand-400 underline hover:text-brand-300"
+                            >
+                              Ajouter des articles
+                            </button>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {zoneLivraison && minimumManquant === 0 && (
+                      <p className="flex items-center gap-1.5 mt-2 text-xs text-success-400">
+                        <Check className="w-3.5 h-3.5" />
+                        Zone livrée — minimum de {zoneLivraison.minimum}€ atteint
+                      </p>
+                    )}
+                    {horsZone && (
+                      <div className="flex items-start gap-2 mt-2 p-3 bg-error-500/10 border border-error-500/20 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-error-400 shrink-0 mt-0.5" />
+                        <div className="text-xs leading-relaxed">
+                          <p className="text-error-400 font-medium">
+                            Cette adresse semble hors de nos zones de livraison
+                          </p>
+                          <p className="text-white/50 mt-1">
+                            Vérifiez que votre ville figure dans nos zones (voir étape 1),
+                            ou choisissez le retrait à emporter.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -493,6 +544,16 @@ export default function Checkout() {
                     <div className="flex items-start gap-2 mt-4 p-3 bg-error-500/10 border border-error-500/20 rounded-lg">
                       <AlertCircle className="w-4 h-4 text-error-400 shrink-0 mt-0.5" />
                       <p className="text-sm text-error-400">{payError}</p>
+                    </div>
+                  )}
+                  {!livraisonOk && (
+                    <div className="flex items-start gap-2 mt-4 p-3 bg-error-500/10 border border-error-500/20 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-error-400 shrink-0 mt-0.5" />
+                      <p className="text-sm text-error-400">
+                        {horsZone
+                          ? 'Adresse hors de nos zones de livraison.'
+                          : `Minimum de commande de ${zoneLivraison?.minimum}€ non atteint — il manque ${minimumManquant.toFixed(2)}€.`}
+                      </p>
                     </div>
                   )}
                 </div>

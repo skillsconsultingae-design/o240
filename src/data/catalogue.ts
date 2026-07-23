@@ -392,9 +392,70 @@ export function needsConfigurator(produit: Produit): boolean {
 }
 
 // ── Zones de livraison ──
-export const ZONES_LIVRAISON = [
-  { zone: 'Saint-Michel-sur-Orge 91240', minimum: 10 },
-  { zone: 'Bretigny-sur-Orge 91220, Ste-Genevieve-des-Bois 91700', minimum: 15 },
-  { zone: 'Bondoufle, Fleury-Merogis, Le Plessis-Pate, Linas, Longpont-sur-Orge, Montlhery, Villiers-sur-Orge', minimum: 20 },
-  { zone: 'Arpajon, Ballainvilliers, La Ville-du-Bois, Marcoussis, Nozay, St-Germain-les-Arpajons, Villemoisson-sur-Orge', minimum: 25 },
+export interface ZoneLivraison {
+  zone: string;           // libelle affiche au client
+  minimum: number;        // minimum de commande en euros
+  villes: string[];       // noms de villes normalises (sans accents/tirets) pour la detection
+  codesPostaux: string[]; // codes postaux propres a la zone (non partages avec une autre zone)
+}
+
+export const ZONES_LIVRAISON: ZoneLivraison[] = [
+  {
+    zone: 'Saint-Michel-sur-Orge 91240',
+    minimum: 10,
+    villes: ['saint michel sur orge', 'st michel sur orge'],
+    codesPostaux: ['91240'],
+  },
+  {
+    zone: 'Bretigny-sur-Orge 91220, Ste-Genevieve-des-Bois 91700',
+    minimum: 15,
+    // 91220 et 91700 sont partages avec la zone a 20€ -> detection par nom de ville uniquement
+    villes: ['bretigny sur orge', 'sainte genevieve des bois', 'ste genevieve des bois'],
+    codesPostaux: [],
+  },
+  {
+    zone: 'Bondoufle, Fleury-Merogis, Le Plessis-Pate, Linas, Longpont-sur-Orge, Montlhery, Villiers-sur-Orge',
+    minimum: 20,
+    villes: ['bondoufle', 'fleury merogis', 'plessis pate', 'linas', 'longpont sur orge', 'montlhery', 'villiers sur orge'],
+    codesPostaux: ['91070'],
+  },
+  {
+    zone: 'Arpajon, Ballainvilliers, La Ville-du-Bois, Marcoussis, Nozay, St-Germain-les-Arpajons, Villemoisson-sur-Orge',
+    minimum: 25,
+    villes: ['arpajon', 'ballainvilliers', 'la ville du bois', 'marcoussis', 'nozay', 'saint germain les arpajon', 'st germain les arpajon', 'villemoisson sur orge'],
+    codesPostaux: ['91290', '91160', '91620', '91460', '91180', '91360'],
+  },
 ];
+
+// Normalise une adresse pour la comparaison : minuscules, sans accents ni ponctuation
+function normaliserAdresse(texte: string): string {
+  return texte
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[-',.]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Retrouve la zone de livraison (et donc le minimum de commande) depuis
+ * l'adresse saisie. Detection par nom de ville d'abord, code postal en repli.
+ * Renvoie null si l'adresse est hors de nos zones.
+ */
+export function trouverZoneLivraison(adresse: string): ZoneLivraison | null {
+  const addr = ` ${normaliserAdresse(adresse)} `;
+  for (const zone of ZONES_LIVRAISON) {
+    if (zone.villes.some((v) => addr.includes(` ${v} `))) return zone;
+  }
+  // Repli sur le code postal si la ville n'a pas ete reconnue
+  const cp = adresse.match(/\b(91\d{3})\b/)?.[1];
+  if (cp) {
+    for (const zone of ZONES_LIVRAISON) {
+      if (zone.codesPostaux.includes(cp)) return zone;
+    }
+    // 91220 / 91700 partages entre les zones 15€ et 20€ : on retient le minimum le plus bas
+    if (cp === '91220' || cp === '91700') return ZONES_LIVRAISON[1];
+  }
+  return null;
+}
