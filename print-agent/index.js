@@ -123,6 +123,16 @@ async function imprimerTicket(commande, lignes) {
     printer.println(commande.mode === 'delivery' ? '>> LIVRAISON' : '>> A EMPORTER');
     printer.bold(false);
   }
+  // Statut du paiement : le personnel doit savoir s'il faut encaisser
+  if (commande.paiement === 'sur_place') {
+    printer.bold(true);
+    printer.setTextDoubleHeight();
+    printer.println(commande.mode === 'delivery' ? '** A ENCAISSER (LIVRAISON) **' : '** A ENCAISSER SUR PLACE **');
+    printer.setTextNormal();
+    printer.bold(false);
+  } else if (commande.paiement === 'en_ligne') {
+    printer.println('Paye en ligne');
+  }
   if (commande.table_num) printer.println(`Table : ${commande.table_num}`);
   if (commande.client_nom) printer.println(`Client : ${commande.client_nom}`);
   if (commande.client_tel) printer.println(`Tel : ${commande.client_tel}`);

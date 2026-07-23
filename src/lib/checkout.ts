@@ -17,17 +17,26 @@ function itemLabel(item: CartItem): string {
   return item.nom;
 }
 
+export interface CheckoutResult {
+  /** true si la commande "paiement sur place" est enregistree (pas de redirection Stripe) */
+  confirmed: boolean;
+  numero?: number | null;
+}
+
 /**
- * Cree la commande cote Supabase + une session Stripe Checkout,
- * puis redirige le navigateur vers la page de paiement Stripe.
- * Au retour, Stripe renvoie sur /checkout?success=1 (ou ?canceled=1).
+ * Cree la commande cote Supabase.
+ * - Paiement en ligne : cree une session Stripe Checkout et redirige le
+ *   navigateur vers la page de paiement (retour sur /checkout?success=1 ou ?canceled=1).
+ * - Paiement sur place : la commande est enregistree et part directement en
+ *   impression au restaurant ; la fonction resout avec { confirmed: true }.
  */
 export async function startCheckout(params: {
   items: CartItem[];
   customer: CustomerInfo;
   deliveryMode: 'delivery' | 'pickup' | null;
-}): Promise<void> {
-  const { items, customer, deliveryMode } = params;
+  paymentMethod: 'online' | 'onsite';
+}): Promise<CheckoutResult> {
+  const { items, customer, deliveryMode, paymentMethod } = params;
 
   if (items.length === 0) throw new Error('Votre panier est vide');
 
@@ -42,6 +51,7 @@ export async function startCheckout(params: {
   const { data, error } = await supabase.functions.invoke('create-checkout', {
     body: {
       panier,
+      paiement: paymentMethod === 'onsite' ? 'sur_place' : 'en_ligne',
       client_nom: `${customer.firstName} ${customer.lastName}`.trim(),
       client_email: customer.email || undefined,
       client_tel: customer.phone || undefined,
@@ -54,7 +64,12 @@ export async function startCheckout(params: {
   });
 
   if (error) throw new Error(error.message);
+
+  // Paiement sur place : pas de Stripe, la commande est deja enregistree
+  if (data?.ok) return { confirmed: true, numero: data.numero ?? null };
+
   if (!data?.url) throw new Error(data?.error || 'Impossible de démarrer le paiement');
 
   window.location.href = data.url; // redirection vers Stripe
+  return { confirmed: false };
 }

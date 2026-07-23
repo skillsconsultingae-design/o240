@@ -52,12 +52,18 @@ function trouverZoneLivraison(adresse: string) {
   return null;
 }
 
+// Frais de gestion appliques uniquement au paiement en ligne.
+// Miroir de FRAIS_GESTION dans src/data/catalogue.ts (front) :
+// toute modification doit etre reportee des deux cotes.
+const FRAIS_GESTION_CENTIMES = 95;
+const FRAIS_GESTION_LIBELLE = 'Frais de gestion';
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 
   try {
     const {
-      panier, table_num, client_nom, client_email, client_tel,
+      panier, paiement, table_num, client_nom, client_email, client_tel,
       mode, adresse, notes, success_url, cancel_url,
     } = await req.json();
 
@@ -65,30 +71,40 @@ Deno.serve(async (req) => {
       throw new Error('panier vide');
     }
 
+    // 'en_ligne' (Stripe) ou 'sur_place' (regle au retrait / a la livraison)
+    const modePaiement = paiement === 'sur_place' ? 'sur_place' : 'en_ligne';
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
     // 1) On enregistre la commande AVANT le paiement (source de verite chez nous)
-    const total = panier.reduce(
+    const sousTotal = panier.reduce(
       (s: number, i: any) => s + Number(i.prix_centimes) * Number(i.quantite), 0,
     );
 
     // Controle du minimum de commande pour la livraison (le front fait le meme
-    // controle, celui-ci garantit qu'il n'est pas contournable)
+    // controle, celui-ci garantit qu'il n'est pas contournable). Le minimum
+    // s'apprecie sur le panier, hors frais de gestion.
     if (mode === 'delivery') {
       const zone = trouverZoneLivraison(String(adresse || ''));
       if (!zone) throw new Error('Adresse hors de nos zones de livraison');
-      if (total < zone.minimum * 100) {
+      if (sousTotal < zone.minimum * 100) {
         throw new Error(`Minimum de commande de ${zone.minimum}€ non atteint pour votre zone`);
       }
     }
 
+    // Frais de gestion : uniquement pour le paiement en ligne
+    const frais = modePaiement === 'en_ligne' ? FRAIS_GESTION_CENTIMES : 0;
+    const total = sousTotal + frais;
+
     const { data: commande, error } = await supabase
       .from('commandes')
       .insert({
-        statut: 'en_attente_paiement',
+        // sur place : la commande est confirmee d'emblee, a encaisser au comptoir/livreur
+        statut: modePaiement === 'sur_place' ? 'a_payer' : 'en_attente_paiement',
+        paiement: modePaiement,
         total_centimes: total,
         table_num, client_nom, client_email, client_tel,
         mode, adresse, notes,
@@ -97,28 +113,56 @@ Deno.serve(async (req) => {
       .single();
     if (error) throw error;
 
-    await supabase.from('commande_lignes').insert(
-      panier.map((i: any) => ({
+    // Lignes de commande (+ ligne "Frais de gestion" si paiement en ligne,
+    // pour qu'elle apparaisse sur le ticket et le dashboard)
+    const lignes = panier.map((i: any) => ({
+      commande_id: commande.id,
+      nom: i.nom,
+      quantite: Number(i.quantite),
+      prix_centimes: Number(i.prix_centimes),
+    }));
+    if (frais > 0) {
+      lignes.push({
         commande_id: commande.id,
-        nom: i.nom,
-        quantite: Number(i.quantite),
-        prix_centimes: Number(i.prix_centimes),
-      })),
-    );
+        nom: FRAIS_GESTION_LIBELLE,
+        quantite: 1,
+        prix_centimes: frais,
+      });
+    }
+    await supabase.from('commande_lignes').insert(lignes);
 
-    // 2) Session Stripe Checkout — on garde le lien via metadata.commande_id
+    // 2a) Paiement sur place : pas de Stripe — impression immediate du ticket
+    if (modePaiement === 'sur_place') {
+      await supabase.from('impressions').insert({ commande_id: commande.id });
+      return new Response(
+        JSON.stringify({ ok: true, commande_id: commande.id, numero: commande.numero }),
+        { headers: { ...cors, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // 2b) Paiement en ligne : session Stripe Checkout — lien via metadata.commande_id
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { apiVersion: '2024-06-20' });
+
+    const lineItems = panier.map((i: any) => ({
+      price_data: {
+        currency: 'eur',
+        product_data: { name: i.nom },
+        unit_amount: Number(i.prix_centimes),
+      },
+      quantity: Number(i.quantite),
+    }));
+    lineItems.push({
+      price_data: {
+        currency: 'eur',
+        product_data: { name: FRAIS_GESTION_LIBELLE },
+        unit_amount: FRAIS_GESTION_CENTIMES,
+      },
+      quantity: 1,
+    });
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      line_items: panier.map((i: any) => ({
-        price_data: {
-          currency: 'eur',
-          product_data: { name: i.nom },
-          unit_amount: Number(i.prix_centimes),
-        },
-        quantity: Number(i.quantite),
-      })),
+      line_items: lineItems,
       metadata: { commande_id: commande.id },
       customer_email: client_email || undefined,
       success_url: success_url || 'https://exemple.com/merci',

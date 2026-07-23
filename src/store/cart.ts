@@ -161,9 +161,12 @@ function buildCartKey(item: Omit<CartItem, 'prix_unitaire' | 'quantite' | 'cartK
 
 // ── Store ──
 
+export type PaymentMethod = 'online' | 'onsite';
+
 interface CartState {
   items: CartItem[];
   deliveryMode: 'delivery' | 'pickup' | null;
+  paymentMethod: PaymentMethod | null;
   orderStep: number;
   isCartOpen: boolean;
   addItem: (item: Omit<CartItem, 'prix_unitaire' | 'quantite' | 'cartKey'>) => void;
@@ -174,6 +177,7 @@ interface CartState {
   clearCart: () => void;
   hasCategorie: (categorie: string) => boolean;
   setDeliveryMode: (mode: 'delivery' | 'pickup') => void;
+  setPaymentMethod: (method: PaymentMethod) => void;
   setOrderStep: (step: number) => void;
   setCartOpen: (open: boolean) => void;
 }
@@ -181,6 +185,7 @@ interface CartState {
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   deliveryMode: null,
+  paymentMethod: null,
   orderStep: 1,
   isCartOpen: false,
 
@@ -228,12 +233,13 @@ export const useCartStore = create<CartState>((set, get) => ({
   getItemCount: () =>
     get().items.reduce((sum, item) => sum + item.quantite, 0),
 
-  clearCart: () => set({ items: [], orderStep: 1, deliveryMode: null }),
+  clearCart: () => set({ items: [], orderStep: 1, deliveryMode: null, paymentMethod: null }),
 
   hasCategorie: (categorie) =>
     get().items.some((i) => i.categorie === categorie),
 
   setDeliveryMode: (mode) => set({ deliveryMode: mode }),
+  setPaymentMethod: (method) => set({ paymentMethod: method }),
   setOrderStep: (step) => set({ orderStep: step }),
   setCartOpen: (open) => set({ isCartOpen: open }),
 }));

@@ -399,6 +399,11 @@ export interface ZoneLivraison {
   codesPostaux: string[]; // codes postaux propres a la zone (non partages avec une autre zone)
 }
 
+// Frais de gestion appliques uniquement au paiement en ligne (en euros).
+// Miroir de FRAIS_GESTION_CENTIMES dans l'Edge Function create-checkout :
+// toute modification doit etre reportee des deux cotes.
+export const FRAIS_GESTION = 0.95;
+
 export const ZONES_LIVRAISON: ZoneLivraison[] = [
   {
     zone: 'Saint-Michel-sur-Orge 91240',

@@ -10,6 +10,7 @@ interface Commande {
   id: string;
   numero: number | null;
   statut: string;
+  paiement: string | null; // 'en_ligne' | 'sur_place'
   total_centimes: number;
   table_num: string | null;
   mode: string | null;
@@ -28,6 +29,7 @@ const heure = (iso: string) =>
 
 const BADGE: Record<string, { cls: string; label: string }> = {
   payee:    { cls: 'bg-amber-500/15 text-amber-400',   label: 'À préparer' },
+  a_payer:  { cls: 'bg-orange-500/15 text-orange-400', label: 'À préparer' },
   imprimee: { cls: 'bg-success-500/15 text-success-400', label: 'Imprimée' },
   terminee: { cls: 'bg-white/10 text-white/50',         label: 'Terminée' },
 };
@@ -172,6 +174,15 @@ function Dashboard({ email }: { email: string }) {
                       <div className="flex items-center gap-2 flex-wrap">
                         <strong className="text-white">Commande #{c.numero ?? ''}</strong>
                         <span className={`text-xs px-2.5 py-1 rounded-full ${badge.cls}`}>{badge.label}</span>
+                        {c.paiement === 'sur_place' ? (
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-error-500/15 text-error-400 font-semibold">
+                            💵 À encaisser {c.mode === 'delivery' ? 'à la livraison' : 'sur place'}
+                          </span>
+                        ) : (
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-success-500/15 text-success-400">
+                            💳 Payé en ligne
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-white/40 mt-1">
                         {heure(c.created_at)}

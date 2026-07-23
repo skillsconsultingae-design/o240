@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Truck, ShoppingBag, Minus, Plus, MapPin, Check, Lock,
   CreditCard, ArrowLeft, ArrowRight, ChevronRight, Phone, AlertCircle, Trash2,
+  Banknote,
 } from 'lucide-react';
 import { useCartStore } from '../store/cart';
-import { ZONES_LIVRAISON, trouverZoneLivraison } from '../data/catalogue';
+import { ZONES_LIVRAISON, trouverZoneLivraison, FRAIS_GESTION } from '../data/catalogue';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import UpsellSuggestions from '../components/UpsellSuggestions';
 import { startCheckout } from '../lib/checkout';
@@ -23,8 +24,8 @@ const steps = [
 export default function Checkout() {
   const navigate = useNavigate();
   const {
-    items, deliveryMode, orderStep, setDeliveryMode, setOrderStep,
-    updateQuantity, removeItem, getTotal, clearCart,
+    items, deliveryMode, paymentMethod, orderStep, setDeliveryMode, setPaymentMethod,
+    setOrderStep, updateQuantity, removeItem, getTotal, clearCart,
   } = useCartStore();
 
   const [customerInfo, setCustomerInfo] = useState({
@@ -35,6 +36,10 @@ export default function Checkout() {
   const [triedSubmitStep3, setTriedSubmitStep3] = useState(false);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [numeroCommande, setNumeroCommande] = useState<number | null>(null);
+  // clearCart() remet deliveryMode a null : on fige le mode pour l'ecran de confirmation
+  const [confirmedMode, setConfirmedMode] = useState<'delivery' | 'pickup' | null>(null);
+  const [confirmedOnsite, setConfirmedOnsite] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -52,11 +57,21 @@ export default function Checkout() {
   }, []);
 
   const handlePay = async () => {
+    if (!paymentMethod) return;
     setPayError(null);
     setPaying(true);
     try {
-      await startCheckout({ items, customer: customerInfo, deliveryMode });
-      // startCheckout redirige vers Stripe : le code ci-dessous n'est pas atteint en cas de succes
+      const result = await startCheckout({ items, customer: customerInfo, deliveryMode, paymentMethod });
+      if (result.confirmed) {
+        // Paiement sur place : commande enregistree + envoyee en cuisine, pas de Stripe
+        setNumeroCommande(result.numero ?? null);
+        setConfirmedMode(deliveryMode);
+        setConfirmedOnsite(true);
+        clearCart();
+        setOrderStep(5);
+        setPaying(false);
+      }
+      // Paiement en ligne : startCheckout a redirige vers Stripe
     } catch (e) {
       setPayError(e instanceof Error ? e.message : 'Erreur lors du paiement');
       setPaying(false);
@@ -64,6 +79,9 @@ export default function Checkout() {
   };
 
   const total = getTotal();
+  // Frais de gestion : uniquement pour le paiement en ligne
+  const fraisGestion = paymentMethod === 'online' ? FRAIS_GESTION : 0;
+  const totalAPayer = total + fraisGestion;
 
   const step3Errors = {
     firstName: !customerInfo.firstName.trim(),
@@ -87,7 +105,7 @@ export default function Checkout() {
       case 1: return deliveryMode !== null;
       case 2: return items.length > 0;
       case 3: return !step3Errors.firstName && !step3Errors.lastName && !step3Errors.phone && !step3Errors.address && livraisonOk;
-      case 4: return livraisonOk;
+      case 4: return livraisonOk && paymentMethod !== null;
       default: return false;
     }
   };
@@ -529,56 +547,111 @@ export default function Checkout() {
                 Paiement
               </h2>
               <div className="max-w-lg mx-auto">
-                <div className="bg-dark-900 rounded-xl p-6 border border-white/5 mb-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <CreditCard className="w-5 h-5 text-brand-500" />
-                    <span className="font-medium text-white">Paiement par carte bancaire</span>
-                  </div>
-                  <p className="text-sm text-white/50 leading-relaxed">
-                    Vous allez être redirigé vers notre page de paiement sécurisée
-                    <span className="text-white/80"> Stripe</span> pour régler votre commande
-                    (CB, Apple&nbsp;Pay, Google&nbsp;Pay). Aucune donnée bancaire ne transite
-                    par notre site.
-                  </p>
-                  {payError && (
-                    <div className="flex items-start gap-2 mt-4 p-3 bg-error-500/10 border border-error-500/20 rounded-lg">
-                      <AlertCircle className="w-4 h-4 text-error-400 shrink-0 mt-0.5" />
-                      <p className="text-sm text-error-400">{payError}</p>
-                    </div>
-                  )}
-                  {!livraisonOk && (
-                    <div className="flex items-start gap-2 mt-4 p-3 bg-error-500/10 border border-error-500/20 rounded-lg">
-                      <AlertCircle className="w-4 h-4 text-error-400 shrink-0 mt-0.5" />
-                      <p className="text-sm text-error-400">
-                        {horsZone
-                          ? 'Adresse hors de nos zones de livraison.'
-                          : `Minimum de commande de ${zoneLivraison?.minimum}€ non atteint — il manque ${minimumManquant.toFixed(2)}€.`}
-                      </p>
-                    </div>
-                  )}
+                {/* Choix du mode de paiement */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <button
+                    onClick={() => setPaymentMethod('online')}
+                    className={`relative p-5 rounded-xl border-2 transition-all text-left ${
+                      paymentMethod === 'online'
+                        ? 'border-brand-500 bg-brand-500/10'
+                        : 'border-white/10 bg-dark-900 hover:border-white/20'
+                    }`}
+                  >
+                    <CreditCard className={`w-8 h-8 mb-3 ${paymentMethod === 'online' ? 'text-brand-500' : 'text-white/40'}`} />
+                    <h3 className="font-semibold text-white mb-1">Payer en ligne</h3>
+                    <p className="text-xs text-white/40">
+                      CB, Apple&nbsp;Pay, Google&nbsp;Pay — paiement sécurisé Stripe
+                    </p>
+                    <p className="text-xs text-brand-400 mt-2">
+                      + {FRAIS_GESTION.toFixed(2)}€ de frais de gestion
+                    </p>
+                    {paymentMethod === 'online' && (
+                      <div className="absolute top-3 right-3 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => setPaymentMethod('onsite')}
+                    className={`relative p-5 rounded-xl border-2 transition-all text-left ${
+                      paymentMethod === 'onsite'
+                        ? 'border-brand-500 bg-brand-500/10'
+                        : 'border-white/10 bg-dark-900 hover:border-white/20'
+                    }`}
+                  >
+                    <Banknote className={`w-8 h-8 mb-3 ${paymentMethod === 'onsite' ? 'text-brand-500' : 'text-white/40'}`} />
+                    <h3 className="font-semibold text-white mb-1">
+                      {deliveryMode === 'delivery' ? 'Payer à la livraison' : 'Payer sur place'}
+                    </h3>
+                    <p className="text-xs text-white/40">
+                      {deliveryMode === 'delivery'
+                        ? 'Réglez le livreur en espèces ou par carte à la réception'
+                        : 'Réglez au restaurant en retirant votre commande (CB ou espèces)'}
+                    </p>
+                    <p className="text-xs text-success-400 mt-2">Sans frais</p>
+                    {paymentMethod === 'onsite' && (
+                      <div className="absolute top-3 right-3 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </button>
                 </div>
+
+                {(payError || !livraisonOk) && (
+                  <div className="bg-dark-900 rounded-xl p-4 border border-white/5 mb-6">
+                    {payError && (
+                      <div className="flex items-start gap-2 p-3 bg-error-500/10 border border-error-500/20 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-error-400 shrink-0 mt-0.5" />
+                        <p className="text-sm text-error-400">{payError}</p>
+                      </div>
+                    )}
+                    {!livraisonOk && (
+                      <div className="flex items-start gap-2 p-3 bg-error-500/10 border border-error-500/20 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-error-400 shrink-0 mt-0.5" />
+                        <p className="text-sm text-error-400">
+                          {horsZone
+                            ? 'Adresse hors de nos zones de livraison.'
+                            : `Minimum de commande de ${zoneLivraison?.minimum}€ non atteint — il manque ${minimumManquant.toFixed(2)}€.`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="bg-dark-900 rounded-xl p-6 border border-white/5 mb-6">
                   <div className="flex justify-between text-sm text-white/40 mb-2">
                     <span>Sous-total</span>
                     <span>{total.toFixed(2)}€</span>
                   </div>
-                  <div className="flex justify-between text-sm text-white/40 mb-4">
+                  <div className="flex justify-between text-sm text-white/40 mb-2">
                     <span>Livraison</span>
                     <span className="text-success-400">Gratuit</span>
                   </div>
-                  <div className="border-t border-white/10 pt-4 flex justify-between">
-                    <span className="font-semibold text-white">Total</span>
+                  {fraisGestion > 0 && (
+                    <div className="flex justify-between text-sm text-white/40 mb-2">
+                      <span>Frais de gestion (paiement en ligne)</span>
+                      <span>{fraisGestion.toFixed(2)}€</span>
+                    </div>
+                  )}
+                  <div className="border-t border-white/10 pt-4 mt-4 flex justify-between">
+                    <span className="font-semibold text-white">
+                      {paymentMethod === 'onsite'
+                        ? (deliveryMode === 'delivery' ? 'Total à régler au livreur' : 'Total à régler sur place')
+                        : 'Total'}
+                    </span>
                     <span className="font-display text-2xl font-bold text-white">
-                      {total.toFixed(2)}€
+                      {totalAPayer.toFixed(2)}€
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-2 text-sm text-white/30 mb-4">
-                  <Lock className="w-4 h-4" />
-                  <span>Paiement securise SSL</span>
-                </div>
+                {paymentMethod === 'online' && (
+                  <div className="flex items-center justify-center gap-2 text-sm text-white/30 mb-4">
+                    <Lock className="w-4 h-4" />
+                    <span>Paiement securise SSL</span>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -601,14 +674,24 @@ export default function Checkout() {
               <h2 className="font-display text-4xl font-bold text-white uppercase mb-4">
                 Commande confirmee !
               </h2>
-              <p className="text-white/50 text-lg mb-2">
-                Numero de commande : #{Math.random().toString(36).substring(2, 8).toUpperCase()}
-              </p>
-              <p className="text-white/40 mb-8">
-                {deliveryMode === 'delivery'
+              {numeroCommande !== null && (
+                <p className="text-white/50 text-lg mb-2">
+                  Numero de commande : #{numeroCommande}
+                </p>
+              )}
+              <p className="text-white/40 mb-2">
+                {(confirmedMode ?? deliveryMode) === 'delivery'
                   ? 'Temps estime de livraison : environ 40 minutes'
                   : 'Votre commande sera prete dans environ 20 minutes'}
               </p>
+              {confirmedOnsite && (
+                <p className="text-brand-400 mb-8">
+                  {(confirmedMode ?? deliveryMode) === 'delivery'
+                    ? 'Reglement au livreur, en especes ou par carte.'
+                    : 'Reglement au restaurant lors du retrait (CB ou especes).'}
+                </p>
+              )}
+              {!confirmedOnsite && <span className="block mb-8" />}
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   onClick={() => {
@@ -643,7 +726,11 @@ export default function Checkout() {
               }`}
             >
               {orderStep === 4
-                ? (paying ? 'Redirection...' : `Payer ${total.toFixed(2)}€`)
+                ? (paying
+                    ? (paymentMethod === 'onsite' ? 'Envoi...' : 'Redirection...')
+                    : (paymentMethod === 'onsite'
+                        ? `Commander (${totalAPayer.toFixed(2)}€ sur place)`
+                        : `Payer ${totalAPayer.toFixed(2)}€`))
                 : 'Continuer'}
               {!paying && <ArrowRight className="w-5 h-5" />}
             </button>
