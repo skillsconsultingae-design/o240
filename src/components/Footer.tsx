@@ -149,6 +149,17 @@ export default function Footer() {
           </div>
         </div>
       </div>
-    </footer>
+    
+        {/* Crédit Le Labo IA */}
+        <div style={{borderTop:'1px solid rgba(128,128,128,0.22)',marginTop:'8px',padding:'18px 24px 12px',display:'flex',justifyContent:'center'}}>
+          <a href="https://lelaboia.fr" target="_blank" rel="noopener" style={{display:'inline-flex',alignItems:'center',gap:'8px',color:'#8b9a93',fontSize:'13px',textDecoration:'none'}}>
+            <span style={{position:'relative',display:'inline-flex',height:'10px',width:'10px'}} aria-hidden="true">
+              <span style={{position:'absolute',top:0,left:0,right:0,bottom:0,borderRadius:'50%',background:'#00ff88',opacity:0.55,filter:'blur(2px)'}}></span>
+              <span style={{position:'relative',height:'10px',width:'10px',borderRadius:'50%',background:'#00ff88'}}></span>
+            </span>
+            Site conçu par&nbsp;<span style={{fontWeight:600,color:'#00b85f'}}>Le Labo IA</span>
+          </a>
+        </div>
+      </footer>
   );
 }
